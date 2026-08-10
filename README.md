@@ -31,6 +31,10 @@ pull request:
   the message): it fetches the PR diff with `gh pr diff` (via the
   `fetch_pr_diff` tool), reviews it, and posts the findings as a PR review
   (event `COMMENT`) with inline comments via `post_review`.
+- After the run, the workflow verifies via the API that a review was actually
+  submitted by this run (comparing `submitted_at` to the job start) and fails
+  the job loudly otherwise — a model that replies in prose instead of posting
+  is a visible failure, not a silent no-op.
 - Add `DEEPSEEK_API_KEY` as a repository secret. `GITHUB_TOKEN` is provided
   automatically and passed as `GH_TOKEN`; the gh-backed tools read it from
   `process.env` — the model never sees the token (Flue docs' "tighter

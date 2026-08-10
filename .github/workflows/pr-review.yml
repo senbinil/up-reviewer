@@ -1,0 +1,47 @@
+name: Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+# Cancel an in-flight review when the PR gets new commits (synchronize);
+# only the newest review should run.
+concurrency:
+  group: pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Fork PRs do not receive repository secrets (DEEPSEEK_API_KEY), so the
+    # review would fail on every external contribution. Skip them until
+    # fork support is added; local same-repo PRs are unaffected.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Run code review agent
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx flue run src/agents/reviewer.ts \
+            --message "Review pull request #${{ github.event.pull_request.number }}" \
+            > /tmp/flue-review.log
+          # The agent's reply must name the posted review (post_review returns
+          # its reviewUrl). Fail loudly if no review was posted, instead of a
+          # silent green no-op.
+          if ! grep -q '#pullrequestreview' /tmp/flue-review.log; then
+            echo "::error::No review was posted to PR #${{ github.event.pull_request.number }}."
+            echo "--- flue run output ---"
+            cat /tmp/flue-review.log
+            exit 1
+          fi

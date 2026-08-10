@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "check:types": "tsc --noEmit",
+    "review": "node --env-file-if-exists=.env src/workflow/review.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -13,15 +15,20 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": ">=22.18"
+  },
   "type": "module",
   "bugs": {
     "url": "https://github.com/binilsn/up-github-agents/issues"
   },
   "homepage": "https://github.com/binilsn/up-github-agents#readme",
   "dependencies": {
-    "@flue/runtime": "^2.0.3"
+    "@flue/runtime": "^2.0.3",
+    "valibot": "^1.4.2"
   },
   "devDependencies": {
-    "@flue/cli": "^2.0.3"
+    "@flue/cli": "^2.0.3",
+    "typescript": "^5.9.0"
   }
 }

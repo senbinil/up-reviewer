@@ -1,0 +1,10 @@
+diff --git a/user.js b/user.js
+index 1111111..2222222 100644
+--- a/user.js
++++ b/user.js
+@@
+-function getName(user) {
+-  return user.name;
++function getName(user) {
++  return user.profile.name;
+ }

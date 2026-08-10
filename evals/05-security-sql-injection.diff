@@ -1,0 +1,11 @@
+diff --git a/users_controller.rb b/users_controller.rb
+index 1111111..2222222 100644
+--- a/users_controller.rb
++++ b/users_controller.rb
+@@
+-def search
+-  User.where("name = '#{params[:name]}'")
+-end
++def search
++  User.where("name = '#{params[:name]}'")
++end

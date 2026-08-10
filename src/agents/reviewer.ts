@@ -1,6 +1,7 @@
 'use agent';
 
 import { execFile } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -16,19 +17,42 @@ import { toJson } from '../lib/render.ts';
 const execFileAsync = promisify(execFile);
 
 /**
- * The authoritative PR number in GITHUB ACTIONS MODE. Under Actions,
- * GITHUB_REF is refs/pull/<N>/merge — deterministic and untrusted-input-free,
- * unlike the model-supplied prNumber (a crafted diff could otherwise redirect
- * the review to a different PR). The tools below use this and ignore the
- * model's number.
+ * The authoritative PR number in GITHUB ACTIONS MODE. Trusted, deterministic
+ * sources only — never the model-supplied prNumber (a crafted diff could
+ * otherwise redirect the review to a different PR). Resolution order:
+ *
+ * 1. PR_NUMBER env var — the workflow sets it from
+ *    `github.event.pull_request.number`, which is available under both
+ *    `pull_request` and `pull_request_target` triggers.
+ * 2. The event payload at GITHUB_EVENT_PATH (same `pull_request.number`).
+ * 3. GITHUB_REF `refs/pull/<N>/merge` — pull_request trigger only; NOT valid
+ *    under pull_request_target, where GITHUB_REF is the base-branch ref.
  */
 function currentPrNumber(): number {
+  const env = Number(process.env.PR_NUMBER);
+  if (Number.isInteger(env) && env >= 1) return env;
+
+  const eventPath = process.env.GITHUB_EVENT_PATH;
+  if (eventPath) {
+    try {
+      const event = JSON.parse(readFileSync(eventPath, 'utf8')) as {
+        pull_request?: { number?: number };
+      };
+      const n = Number(event.pull_request?.number);
+      if (Number.isInteger(n) && n >= 1) return n;
+    } catch {
+      // fall through to GITHUB_REF
+    }
+  }
+
   const ref = process.env.GITHUB_REF ?? '';
   const match = /^refs\/pull\/(\d+)\/merge$/.exec(ref);
   if (match) return Number(match[1]);
+
   throw new Error(
-    `Cannot determine the PR number: GITHUB_REF is "${ref}". ` +
-      'Expected refs/pull/<N>/merge (GitHub Actions pull_request trigger).',
+    'Cannot determine the PR number: PR_NUMBER, GITHUB_EVENT_PATH, and ' +
+      `GITHUB_REF ("${ref}") all lack a pull request number. ` +
+      'Expected to run under a GitHub Actions pull_request( _target) trigger.',
   );
 }
 
@@ -121,20 +145,42 @@ const postReview = defineTool({
         review = await post(payload);
       } catch (err) {
         // GitHub 422s the whole review when any single comment is invalid
-        // (path not in the diff, line outside a hunk). Fall back to a
-        // body-only review so the summary still lands. Any other failure
-        // (auth, network, 5xx) is rethrown unchanged — it is not a comment
-        // problem and must not be swallowed.
+        // (path not in the diff, line outside a hunk). Degrade per comment
+        // instead of all-or-nothing: post each comment as its own review,
+        // skipping only the invalid ones, and finish with a body-only
+        // summary review. Any non-422 failure (auth, network, 5xx) is
+        // rethrown unchanged — it is not a comment problem.
         const detail = err instanceof Error ? String(err.message) : String(err);
         if (!detail.includes('422')) throw err;
         console.error(
-          `[post_review] inline comments rejected (422); posting body-only review. ` +
-            `Original error: ${detail}`,
+          `[post_review] comment batch rejected (422); posting comments ` +
+            `individually. Original error: ${detail}`,
+        );
+        let posted = 0;
+        for (const comment of comments) {
+          try {
+            await post({ event: 'COMMENT', comments: [comment] });
+            posted++;
+          } catch (commentErr) {
+            const cd =
+              commentErr instanceof Error ? String(commentErr.message) : String(commentErr);
+            // Only a per-comment 422 is a "bad comment" we can skip. Any
+            // other failure (auth, network, 5xx) applies to every post and
+            // must not be swallowed as a comment problem.
+            if (!cd.includes('422')) throw commentErr;
+            console.error(
+              `[post_review] skipping invalid comment (${comment.path}:${comment.line}): ${cd}`,
+            );
+          }
+        }
+        console.error(
+          `[post_review] posted ${posted}/${comments.length} inline comments; ` +
+            `finishing with a body-only summary review.`,
         );
         review = await post({ body: summary, event: 'COMMENT', comments: [] });
       }
       return {
-        output: { reviewUrl: review.html_url ?? `PR #${data.prNumber} review posted` },
+        output: { reviewUrl: review.html_url ?? `PR #${prNumber} review posted` },
         terminate: true,
       };
     } finally {

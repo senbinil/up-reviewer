@@ -24,9 +24,17 @@ Requires Node >= 22.18 (native TypeScript type-stripping).
 The same agent runs as a GitHub Actions workflow that posts a review to every
 pull request:
 
-- `.github/workflows/pr-review.yml` triggers on `pull_request` (opened and
-  synchronize), runs `npx flue run src/agents/reviewer.ts --message "Review
-  pull request #N"`, and grants `pull-requests: write` so the review lands.
+- `.github/workflows/pr-review.yml` triggers on `pull_request_target`
+  (opened and synchronize), runs `npx flue run src/agents/reviewer.ts --message
+  "Review pull request #N"`, and grants `pull-requests: write` so the review
+  lands.
+- `pull_request_target` (not `pull_request`) deliberately: the workflow and
+  its `npm ci` / agent code come from the base branch, never from the PR's
+  merge commit — a PR author cannot rewrite the workflow to exfiltrate
+  `DEEPSEEK_API_KEY`. The reviewer gets the diff over the API (`gh pr
+  diff`) and never executes PR code. Consequence: the workflow only activates
+  once it exists on the default branch, so the PR that introduces it is not
+  auto-reviewed.
 - The agent runs in GITHUB ACTIONS MODE (decided by the environment, not by
   the message): it fetches the PR diff with `gh pr diff` (via the
   `fetch_pr_diff` tool), reviews it, and posts the findings as a PR review
@@ -139,12 +147,15 @@ Done:
 - [x] `check:types` script (was documented but missing) + `valibot` /
       `typescript` deps; Node `engines` guard
 - [x] GitHub Actions workflow (`.github/workflows/pr-review.yml`): reviews
-      every same-repo PR on open/synchronize (fork PRs are skipped — no
-      repository secrets on fork runs) and posts the findings as a PR review
-      (event `COMMENT` with inline comments) via `gh`, using `GITHUB_TOKEN`;
+      every same-repo PR on open/synchronize and posts the findings as a PR
+      review (event `COMMENT` with inline comments) via `gh`, using
+      `GITHUB_TOKEN`; triggered as `pull_request_target` with a base-branch
+      checkout so PR-controlled code never runs with secrets (fork PRs are
+      skipped — under `pull_request_target` they would receive repo secrets);
       mode and tools are gated on the `GITHUB_ACTIONS` env (no gh tools in
       LOCAL MODE — no injection surface, no model-directed shell, token never
-      exposed to the model)
+      exposed to the model); the PR number comes from the workflow env, never
+      from the model
 - [x] `post_review` resilience: `line >= 1` schema constraint; if inline
       comments are rejected by GitHub (422), the review falls back to a
       body-only summary so the review still lands

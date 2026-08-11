@@ -54,13 +54,20 @@ pull request:
 `.github/workflows/ci.yml` runs `npm run check:types` and `npm test` on
 every push to any branch and on pull requests (opened/reopened only —
 every PR update is a push, so `synchronize` would be a duplicate). It
-runs on Node 24 (read from `.nvmrc`), skips fork PRs (matching the review
-workflow), and carries no secrets — permissions are read-only contents.
+runs on Node 24 (read from `.nvmrc`), carries no secrets — permissions are read-only contents.
 
 Concurrency is grouped per branch with `cancel-in-progress`: a new push
 cancels the in-flight run from the previous commit on the same branch, so
-CI never backs up behind stale runs. Docs-only pushes (markdown,
-`.nvmrc`) skip CI to save runner minutes.
+CI never backs up behind stale runs. Docs-only pushes (markdown) skip CI
+to save runner minutes.
+
+Fork PRs are un-gated (GitHub denies repository secrets to fork runs +
+the read-only token is the real boundary, not an inline `if:` that a fork
+can delete from its copy).
+
+Fork PRs are un-gated (GitHub denies repository secrets to fork runs +
+the read-only token is the real boundary, not an inline `if:` that a fork
+can delete from its copy).
 
 ## How it works
 

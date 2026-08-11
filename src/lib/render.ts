@@ -50,12 +50,26 @@ let cachedTemplates: ReviewTemplates | undefined;
 
 /** Load the response templates from templates/, cached for the process lifetime. */
 export function loadTemplates(): ReviewTemplates {
-  cachedTemplates ??= {
-    summary: templateFile('review.summary.md'),
-    finding: templateFile('review.finding.md'),
-    comment: templateFile('review.comment.md'),
-    clean: templateFile('review.clean.md'),
-  };
+  cachedTemplates ??= (() => {
+    const t: ReviewTemplates = {
+      summary: templateFile('review.summary.md'),
+      finding: templateFile('review.finding.md'),
+      comment: templateFile('review.comment.md'),
+      clean:  templateFile('review.clean.md'),
+    };
+    // Guard against mis-edited templates: the summary must contain
+    // exactly one {{findings}} so the two-pass render in toMarkdown
+    // can insert the finding blocks without dropping or leaking them.
+    const count = t.summary.match(/{{\s*findings\s*}}/g)?.length ?? 0;
+    if (count !== 1) {
+      throw new Error(
+        `templates/review.summary.md must contain exactly one {{findings}} ` +
+        `placeholder (found ${count}). Edit the template so {{findings}} ` +
+        `appears where the finding blocks should go, then restart.`,
+      );
+    }
+    return t;
+  })();
   return cachedTemplates;
 }
 

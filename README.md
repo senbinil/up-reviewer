@@ -17,7 +17,7 @@ npm run review -- main feature/x   # review a branch diff
 npm run review -- --format json main feature/x   # API-ready JSON
 ```
 
-Requires Node >= 22.18 (native TypeScript type-stripping).
+Requires Node >= 24 (native TypeScript type-stripping).
 
 ## Review pull requests on GitHub Actions
 
@@ -177,6 +177,10 @@ Known limitations:
 ## Next steps
 
 - [ ] Replace the 100 KB cap with chunked reviews of large diffs
+- [ ] Rebuild a quality-eval harness: seeded diffs with golden findings
+      compared against the agent's output on every run (the original
+      `evals/` corpus was retired; unit tests cover the deterministic
+      plumbing only)
 - [ ] Support fork PRs (they are skipped today because fork runs do not receive
       repository secrets)
 

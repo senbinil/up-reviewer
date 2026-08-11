@@ -126,7 +126,7 @@ Validated by `submit_findings` (schema in `src/lib/findings.ts`):
   "line": 42,
   "severity": "high | medium | low",
   "title": "short headline",
-  "body": "why it matters + suggested fix"
+  "body": "problem + suggested fix"
 }]
 ```
 
@@ -134,6 +134,27 @@ Validated by `submit_findings` (schema in `src/lib/findings.ts`):
   `@@` hunk headers; omitted for file-level findings (e.g. missing tests).
 - `high` = correctness/security/reliability, `medium` = performance/
   maintainability, `low` = readability/style.
+- The model is instructed to keep `title` under ~8 words and `body` to
+  1-2 sentences (problem + fix), so reviews stay short and focused.
+
+## Response templates
+
+The human- and API-facing output is rendered from plain-text templates in
+`templates/`, so the format can be changed without touching code. Each
+`{{placeholder}}` is substituted by `src/lib/render.ts`; unknown
+placeholders render empty. Model-produced text is sanitized before
+substitution (control characters stripped), so templates can't be used to
+smuggle terminal escapes or invalid paths.
+
+| Template | Used for | Placeholders |
+| --- | --- | --- |
+| `templates/review.summary.md` | The whole report (local CLI output + PR review body) | `{{count}}`, `{{high}}`, `{{medium}}`, `{{low}}`, and **`{{findings}}`** — the finding blocks joined by blank lines |
+| `templates/review.finding.md` | One block per finding, repeated inside `{{findings}}` | `{{severity_label}}` (emoji + name), `{{severity}}` (raw), `{{file}}`, `{{line}}`, `{{anchor}}` (`` `file:line` `` or `` `file` ``), `{{title}}`, `{{body}}` |
+| `templates/review.comment.md` | The body of each GitHub inline review comment | same per-finding placeholders |
+
+To restyle output, edit the templates — e.g. switch `{{severity_label}}` to
+`{{severity}}` for plain text, or change the header line in the summary
+without touching `render.ts`.
 
 ## Current progress
 
@@ -193,12 +214,13 @@ src/
   workflow/review.ts     the local runner: git diff → dispatch → validate → render
   lib/git-diff.ts        shell-safe `git diff` fetch (execFile, no parsing)
   lib/findings.ts        shared findings schema + tolerant reply parser
-  lib/render.ts          markdown + GitHub review-comments payload rendering
+  lib/render.ts          template-based output rendering (markdown + GitHub payload)
   types/review.ts        ReviewFinding types
   db.ts                  SQLite persistence adapter (durable conversations)
   lib/*.test.ts          unit tests for the lib modules (npm test → node --test)
 .github/workflows/       pr-review.yml — review every PR on GitHub Actions
 evals/                   seeded diffs + golden reviews (not wired in yet)
+templates/               response format templates (summary, finding, comment)
 ```
 
 ## Learn more

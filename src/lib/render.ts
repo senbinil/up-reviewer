@@ -38,6 +38,8 @@ export interface ReviewTemplates {
   finding: string;
   /** Per-finding GitHub inline-comment body. */
   comment: string;
+  /** Rendering for the case when no findings were reported. */
+  clean: string;
 }
 
 function templateFile(name: string): string {
@@ -52,6 +54,7 @@ export function loadTemplates(): ReviewTemplates {
     summary: templateFile('review.summary.md'),
     finding: templateFile('review.finding.md'),
     comment: templateFile('review.comment.md'),
+    clean: templateFile('review.clean.md'),
   };
   return cachedTemplates;
 }
@@ -92,7 +95,7 @@ export function toMarkdown(
   findings: ReviewFinding[],
   templates: ReviewTemplates = loadTemplates(),
 ): string {
-  if (findings.length === 0) return 'No findings — the diff looks clean.';
+  if (findings.length === 0) return templates.clean;
   const bySeverity = countBySeverity(findings);
   const blocks = findings.map((f) => fill(templates.finding, findingValues(f))).join('\n\n');
   return fill(templates.summary, {

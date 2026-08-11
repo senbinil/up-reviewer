@@ -7,8 +7,8 @@ export const findingsSchema = v.array(
     file: v.string(),
     line: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1))),
     severity: v.picklist(["high", "medium", "low"]),
-    title: v.string(),
-    body: v.string(),
+    title: v.pipe(v.string(), v.maxLength(100)),
+    body: v.pipe(v.string(), v.maxLength(300)),
   }),
 );
 

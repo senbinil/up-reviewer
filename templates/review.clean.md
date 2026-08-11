@@ -1,0 +1,1 @@
+No findings — the diff looks clean.

@@ -151,6 +151,7 @@ smuggle terminal escapes or invalid paths.
 | `templates/review.summary.md` | The whole report (local CLI output + PR review body) | `{{count}}`, `{{high}}`, `{{medium}}`, `{{low}}`, and **`{{findings}}`** — the finding blocks joined by blank lines |
 | `templates/review.finding.md` | One block per finding, repeated inside `{{findings}}` | `{{severity_label}}` (emoji + name), `{{severity}}` (raw), `{{file}}`, `{{line}}`, `{{anchor}}` (`` `file:line` `` or `` `file` ``), `{{title}}`, `{{body}}` |
 | `templates/review.comment.md` | The body of each GitHub inline review comment | same per-finding placeholders |
+| `templates/review.clean.md` | Rendered when the review found nothing to report | (none) |
 
 To restyle output, edit the templates — e.g. switch `{{severity_label}}` to
 `{{severity}}` for plain text, or change the header line in the summary

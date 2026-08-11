@@ -54,6 +54,9 @@ test('rejects structurally invalid findings', () => {
     JSON.stringify([{ file: 'a.ts', severity: 'high', title: 'T' }]),
     // not an array of objects
     JSON.stringify([1, 2, 3]),
+    // title and body exceed their length caps (100 and 300 chars respectively)
+    JSON.stringify([{ file: 'a.ts', severity: 'high', title: 'A'.repeat(101), body: 'B' }]),
+    JSON.stringify([{ file: 'a.ts', severity: 'high', title: 'T', body: 'B'.repeat(301) }]),
   ];
   for (const text of cases) {
     assert.equal(parseFindings(text), undefined, `should reject: ${text}`);

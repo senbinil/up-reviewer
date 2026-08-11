@@ -12,6 +12,14 @@ test('toMarkdown renders an empty array as a clean-review message', () => {
   assert.equal(toMarkdown([]), 'No findings — the diff looks clean.');
 });
 
+test('toMarkdown renders empty findings via a custom clean template', () => {
+  const templates = {
+    summary: '', finding: '', comment: '',
+    clean: 'All good — nothing to report.',
+  };
+  assert.equal(toMarkdown([], templates), 'All good — nothing to report.');
+});
+
 test('toMarkdown renders severity counts and line-anchored headings', () => {
   const md = toMarkdown([
     { file: 'src/a.ts', line: 42, severity: 'high', title: 'Null deref', body: 'Guard it.' },
@@ -72,6 +80,7 @@ test('toMarkdown renders with a custom template', () => {
     summary: '{{count}} total ({{high}}h/{{medium}}m/{{low}}l):\n{{findings}}',
     finding: '- [{{severity}}] {{title}} at {{anchor}}',
     comment: '{{severity_label}} | {{title}}',
+    clean: 'No issues.',
   };
   const findings: ReviewFinding[] = [
     { file: 'a.ts', line: 3, severity: 'high', title: 'T', body: 'B' },
@@ -88,6 +97,7 @@ test('toJson renders comments with a custom template', () => {
     summary: '{{count}}',
     finding: '',
     comment: '{{severity_label}}|{{file}}:{{line}}',
+    clean: '',
   };
   const { summary, comments } = toJson(
     [{ file: 'a.ts', line: 3, severity: 'high', title: 'T', body: 'B' }],

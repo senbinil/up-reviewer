@@ -239,8 +239,10 @@ export function Reviewer() {
        "title": "short headline", "body": "problem + suggested fix" }]
 
     - Keep findings SHORT and FOCUSED: titles under ~8 words; bodies 1-2
-      sentences (what's wrong + the fix). No filler, no restating the title,
-      no multi-paragraph essays — a dense, scannable review is the goal.
+      tight sentences (what's wrong + the fix). The output schema enforces
+      brevity — a finding whose title or body is too long will be rejected
+      by the tool, so concise output is required, not just preferred. No
+      filler, no restating the title, no essays.
 
     - Map each finding to the exact \`file\` and a \`line\` number in the HEAD
       revision of that file. Compute line numbers from the \`@@\` hunk headers

@@ -1,0 +1,10 @@
+diff --git a/server.js b/server.js
+index 1111111..2222222 100644
+--- a/server.js
++++ b/server.js
+@@
++const { exec } = require("child_process");
++
++app.post("/ping", (req, res) => {
++  exec("ping " + req.body.host);
++});

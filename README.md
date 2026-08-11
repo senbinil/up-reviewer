@@ -178,9 +178,8 @@ Known limitations:
 
 - [ ] Replace the 100 KB cap with chunked reviews of large diffs
 - [ ] Rebuild a quality-eval harness: seeded diffs with golden findings
-      compared against the agent's output on every run (the original
-      `evals/` corpus was retired; unit tests cover the deterministic
-      plumbing only)
+      compared against the agent's output on every run (the `evals/` corpus
+      exists but is not wired into an automated harness yet)
 - [ ] Support fork PRs (they are skipped today because fork runs do not receive
       repository secrets)
 
@@ -199,6 +198,7 @@ src/
   db.ts                  SQLite persistence adapter (durable conversations)
   lib/*.test.ts          unit tests for the lib modules (npm test → node --test)
 .github/workflows/       pr-review.yml — review every PR on GitHub Actions
+evals/                   seeded diffs + golden reviews (not wired in yet)
 ```
 
 ## Learn more

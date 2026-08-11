@@ -1,0 +1,33 @@
+name: CI
+
+# Tests and typecheck on every push to any branch. Runs only on push —
+# not on pull_request — so concurrent pushes to a branch cancel the
+# in-flight run (see concurrency below).
+#
+# The job carries no secrets (it never references DEEPSEEK_API_KEY) and
+# permissions are read-only contents, so even a branch that rewrites this
+# workflow cannot exfiltrate anything.
+on:
+  push:
+
+# Cancel superseded runs: a new push to the same branch cancels the in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check:types
+      - run: npm test

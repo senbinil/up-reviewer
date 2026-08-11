@@ -1,0 +1,11 @@
+diff --git a/users.rb b/users.rb
+index 1111111..2222222 100644
+--- a/users.rb
++++ b/users.rb
+@@
+-User.all.each do |user|
+-  puts user.posts.count
+-end
++User.all.each do |user|
++  puts user.posts.first.title
++end

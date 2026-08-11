@@ -98,13 +98,18 @@ export function toMarkdown(
   if (findings.length === 0) return templates.clean;
   const bySeverity = countBySeverity(findings);
   const blocks = findings.map((f) => fill(templates.finding, findingValues(f))).join('\n\n');
-  return fill(templates.summary, {
+  // Two-pass substitution to avoid double-scanning the model-produced text
+  // inside {{findings}}: first fill the summary counts plus a sentinel in
+  // {{findings}}, then literal-replace the sentinel with the rendering
+  // blocks — no regex, so {{placeholders}} inside model text are preserved.
+  const header = fill(templates.summary, {
     count: String(findings.length),
     high: String(bySeverity.high),
     medium: String(bySeverity.medium),
     low: String(bySeverity.low),
-    findings: blocks,
+    findings: '\x00FINDINGS\x00',
   });
+  return header.replace('\x00FINDINGS\x00', blocks);
 }
 
 export interface GitHubComment {

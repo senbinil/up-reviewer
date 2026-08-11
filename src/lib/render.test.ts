@@ -75,6 +75,14 @@ test('toJson sanitizes paths and bodies before they reach GitHub', () => {
   assert.equal(comments[0].body, '**🟠 Medium: T**\nB');
 });
 
+test('toMarkdown preserves {{placeholders}} in model-produced text', () => {
+  const md = toMarkdown([
+    { file: 'a.ts', line: 1, severity: 'high', title: 'Uses {{variable}}', body: 'Replace {{count}} usage with bind.' },
+  ]);
+  assert.match(md, /\{\{variable\}\}/);
+  assert.match(md, /\{\{count\}\}/); // must not be replaced with "1"
+});
+
 test('toMarkdown renders with a custom template', () => {
   const templates = {
     summary: '{{count}} total ({{high}}h/{{medium}}m/{{low}}l):\n{{findings}}',

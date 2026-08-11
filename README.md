@@ -49,6 +49,19 @@ pull request:
   boundary" pattern: a narrow tool reads the secret, the agent only sees
   parameters and results).
 
+## CI
+
+`.github/workflows/ci.yml` runs `npm run check:types` and `npm test` on
+every push to any branch and on pull requests (opened/reopened only —
+every PR update is a push, so `synchronize` would be a duplicate). It
+runs on Node 24 (read from `.nvmrc`), skips fork PRs (matching the review
+workflow), and carries no secrets — permissions are read-only contents.
+
+Concurrency is grouped per branch with `cancel-in-progress`: a new push
+cancels the in-flight run from the previous commit on the same branch, so
+CI never backs up behind stale runs. Docs-only pushes (markdown,
+`.nvmrc`) skip CI to save runner minutes.
+
 ## How it works
 
 Local CLI:
@@ -135,7 +148,10 @@ Validated by `submit_findings` (schema in `src/lib/findings.ts`):
 - `high` = correctness/security/reliability, `medium` = performance/
   maintainability, `low` = readability/style.
 - The model is instructed to keep `title` under ~8 words and `body` to
-  1-2 sentences (problem + fix), so reviews stay short and focused.
+  1-2 sentences (problem + fix), so reviews stay short and focused. The
+  schema also hard-enforces these limits (`v.maxLength(100)` for `title`,
+  `v.maxLength(300)` for `body`) — a tool call with a finding that exceeds
+  them is rejected, and the model retries shorter.
 
 ## Response templates
 
@@ -184,6 +200,15 @@ Done:
 - [x] Unit tests for `assertGitRef` / `diffBetweenRefs` / `parseFindings` and
       the render paths, run via `npm test` (`node --test`, colocated in
       `src/lib/*.test.ts`)
+- [x] CI workflow (`.github/workflows/ci.yml`): runs `check:types` and
+      `npm test` on every push and PR, with per-branch concurrency -
+      cancellation so CI never backs up behind stale runs
+- [x] Template-based response format (`templates/`): summary, finding, and
+      inline-comment output is rendered from plain-text markdown templates;
+      the format can be restyled without touching code
+- [x] Schema-enforced brevity: `title` capped at 100 chars, `body` at 300
+      chars — the model's tool call is rejected if a finding exceeds the cap,
+      so reviews stay short and focused
 
 Known limitations:
 
@@ -219,9 +244,9 @@ src/
   types/review.ts        ReviewFinding types
   db.ts                  SQLite persistence adapter (durable conversations)
   lib/*.test.ts          unit tests for the lib modules (npm test → node --test)
-.github/workflows/       pr-review.yml — review every PR on GitHub Actions
+.github/workflows/       pr-review.yml + ci.yml — review every PR; CI on every push
 evals/                   seeded diffs + golden reviews (not wired in yet)
-templates/               response format templates (summary, finding, comment)
+templates/               response format templates (summary, finding, comment, clean)
 ```
 
 ## Learn more

@@ -1,0 +1,74 @@
+name: Code Review
+
+# pull_request_target, not pull_request: the workflow must never execute
+# PR-controlled code with secrets. Under pull_request the workflow runs from
+# the PR's merge commit — the PR author could rewrite this file, the agent,
+# or package.json lifecycle scripts to exfiltrate DEEPSEEK_API_KEY. Under
+# pull_request_target the workflow file and GITHUB_SHA come from the base
+# branch, and actions/checkout below pins the same base SHA, so only trusted
+# code runs. The reviewer never needs the PR's code on disk: it fetches the
+# diff via `gh pr diff` (API) and posts via the API. Fork PRs are skipped
+# (see the job guard) — under pull_request_target they would receive
+# secrets, so they are excluded entirely.
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+
+# Cancel an in-flight review when the PR gets new commits (synchronize);
+# only the newest review should run.
+concurrency:
+  group: pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Fork PRs are skipped: under pull_request_target they would receive
+    # repository secrets, and only same-repo branch PRs are supported today.
+    # (Head-repo code never runs regardless — see the pull_request_target note
+    # above.)
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      # Base-branch code only: GITHUB_SHA is the base commit under
+      # pull_request_target; pinning the ref makes that explicit. The PR's
+      # diff is fetched over the API, never from this checkout.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Run code review agent
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          # PR_NUMBER is a trusted source for the agent (github.event is set
+          # under both pull_request and pull_request_target; GITHUB_REF alone
+          # is the base ref under pull_request_target).
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          start="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          # Keep the run's stdout for diagnostics; a flue failure must not
+          # short-circuit, because the API check below is the ground truth.
+          npx flue run src/agents/reviewer.ts \
+            --message "Review pull request #${{ github.event.pull_request.number }}" \
+            > /tmp/flue-review.log || true
+          # Deterministic verification: a review must have been submitted by
+          # this run. GET /pulls/{n}/reviews returns reviews oldest-first, so
+          # filter by submitted_at >= job start rather than trusting .[0].
+          # (Parsing the model's reply for the URL is unreliable too.)
+          newest="$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews" \
+            --jq '[.[] | select(.submitted_at >= "'"$start"'")] | .[-1].submitted_at // empty' || true)"
+          if [[ -z "$newest" ]]; then
+            echo "::error::No review was posted to PR #${{ github.event.pull_request.number }}."
+            echo "--- flue run output ---"
+            cat /tmp/flue-review.log
+            exit 1
+          fi
+          echo "Review posted: $newest"

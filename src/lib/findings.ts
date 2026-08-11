@@ -5,7 +5,7 @@ import type { ReviewFinding } from "../types/review.ts";
 export const findingsSchema = v.array(
   v.object({
     file: v.string(),
-    line: v.optional(v.number()),
+    line: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1))),
     severity: v.picklist(["high", "medium", "low"]),
     title: v.string(),
     body: v.string(),

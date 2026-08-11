@@ -21,15 +21,10 @@ import { Reviewer } from '../agents/reviewer.ts';
 import db from '../db.ts';
 import { diffBetweenRefs } from '../lib/git-diff.ts';
 import { findingsSchema, parseFindings } from '../lib/findings.ts';
+import { toJson, toMarkdown, sanitize } from '../lib/render.ts';
 import type { ReviewFinding } from '../types/review.ts';
 
 type Format = 'markdown' | 'json';
-
-const SEVERITY_HEADING: Record<ReviewFinding['severity'], string> = {
-  high: '🔴 High',
-  medium: '🟠 Medium',
-  low: '🟡 Low',
-};
 
 function parseArgs(argv: string[]): { base: string; head?: string; format: Format } {
   let format: Format = 'markdown';
@@ -50,67 +45,7 @@ function parseArgs(argv: string[]): { base: string; head?: string; format: Forma
   return { base: argBase ?? 'HEAD', head, format };
 }
 
-// Strip terminal control characters from model-produced text before printing:
-// a crafted diff could steer the model into echoing ANSI/OSC escape sequences
-// into a finding, which the terminal would then interpret. Keep \n and \t.
-function sanitize(s: string): string {
-  return s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, '');
-}
 
-function countBySeverity(findings: ReviewFinding[]): Record<ReviewFinding['severity'], number> {
-  const bySeverity = { high: 0, medium: 0, low: 0 };
-  for (const f of findings) bySeverity[f.severity]++;
-  return bySeverity;
-}
-
-function findingAnchor(f: ReviewFinding): string {
-  const file = sanitize(f.file);
-  return f.line !== undefined ? `\`${file}:${f.line}\`` : `\`${file}\``;
-}
-
-/** GitHub-flavored markdown, paste-able into a PR comment. */
-function toMarkdown(findings: ReviewFinding[]): string {
-  if (findings.length === 0) return 'No findings — the diff looks clean.';
-  const bySeverity = countBySeverity(findings);
-  const lines = [
-    `## Code review — ${findings.length} finding(s) ` +
-      `(${bySeverity.high} high, ${bySeverity.medium} medium, ${bySeverity.low} low)`,
-  ];
-  for (const f of findings) {
-    lines.push('');
-    lines.push(
-      `### ${SEVERITY_HEADING[f.severity]} — ${sanitize(f.title)} — ${findingAnchor(f)}`,
-    );
-    lines.push('');
-    lines.push(sanitize(f.body));
-  }
-  return lines.join('\n');
-}
-
-interface GitHubComment {
-  body: string;
-  path: string;
-  line: number;
-}
-
-/** { summary, comments } shaped for GitHub PR commenting / scripting. */
-function toJson(findings: ReviewFinding[]): {
-  summary: string;
-  comments: GitHubComment[];
-} {
-  const comments: GitHubComment[] = [];
-  for (const f of findings) {
-    if (f.line === undefined) continue; // file-level findings go in the summary
-    comments.push({
-      body:
-        `**${SEVERITY_HEADING[f.severity]}: ${sanitize(f.title)}**\n\n` +
-        sanitize(f.body),
-      path: f.file,
-      line: f.line,
-    });
-  }
-  return { summary: toMarkdown(findings), comments };
-}
 
 let flue: Awaited<ReturnType<typeof start>> | undefined;
 try {
@@ -186,7 +121,7 @@ try {
 
   if (findings === undefined) {
     console.error(
-      'No structured findings were captured. Raw agent reply:\n\n' + reply.text,
+      'No structured findings were captured. Raw agent reply:\n\n' + sanitize(reply.text),
     );
     process.exitCode = 1;
   } else if (format === 'json') {

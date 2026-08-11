@@ -1,24 +1,35 @@
 name: CI
 
-# Tests and typecheck on every push to any branch and on pull requests.
+# Tests and typecheck on every push to any branch and on pull requests
+# (opened/reopened only). Push is filtered to branches, not tags.
 #
-# The job carries no secrets (it never references DEEPSEEK_API_KEY) and
-# permissions are read-only contents, so even a branch that rewrites this
-# workflow cannot exfiltrate anything.
+# synchronize is deliberately NOT a trigger: every PR update is a push, so
+# the push event already runs CI on the head commit. Adding synchronize
+# would fire a second run per commit; concurrency would cancel one of the
+# twins, and the PR would show a cancelled (not-successful) check forever.
+#
+# Fork PRs are job-gated below, matching pr-review.yml: their
+# package.json/package-lock.json install scripts are attacker-controlled
+# code that would otherwise run on shared runners. The job carries no
+# secrets (it never references DEEPSEEK_API_KEY) and permissions are
+# read-only contents.
 on:
   push:
+    branches: ['**']
   pull_request:
+    types: [opened, reopened]
 
-# One group per branch: a new push to the branch — and the pull_request
-# synchronize event it also fires when a PR is open — cancels any in-flight
-# run from the previous commit on the same branch.
-#
-# Keying on the branch name (github.head_ref for PR events, github.ref_name
-# for pushes) is deliberate: github.ref differs between the two (refs/heads/x
-# vs refs/pull/N/merge), so a ref-based group would let the push run and the
-# PR run of the same commit run in parallel instead of cancelling each other.
+# One group per (head repository, branch): a new push to the branch cancels
+# any in-flight run from the previous commit on the same branch. Scoping by
+# head repo id isolates fork PRs from the base repo's pool (they are
+# job-gated anyway; the scoping also holds if the gate is ever relaxed),
+# while same-repo PR runs share the group with pushes of the same branch.
+# github.head_ref is set for pull_request events and empty for pushes, so
+# `head_ref || ref_name` unifies both on the branch name — otherwise push
+# runs (refs/heads/x) and PR runs (refs/pull/N/merge) would be separate
+# groups and run duplicates in parallel.
 concurrency:
-  group: ci-${{ github.head_ref || github.ref_name }}
+  group: ci-${{ github.event.pull_request.head.repo.id || github.repository_id }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 permissions:
@@ -28,11 +39,16 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Push events and same-repo PRs run; fork PRs are skipped (their code
+    # would execute on shared runners). github.event.pull_request is null on
+    # pushes, so the push half of the condition keeps those runs alive.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          # Single source of truth for the Node version (.nvmrc).
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run check:types

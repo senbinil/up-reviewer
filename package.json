@@ -1,8 +1,19 @@
 {
   "name": "up-github-agents",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Flue agent that reviews git diffs and reports structured, line-anchored findings",
+  "files": [
+    "src/",
+    "templates/",
+    "flue.config.ts"
+  ],
+  "bin": {
+    "review-diff": "./src/workflow/review.ts"
+  },
+  "exports": {
+    ".": "./src/agents/reviewer.ts",
+    "./*": "./src/*"
+  },
   "scripts": {
     "check:types": "tsc --noEmit",
     "review": "node --env-file-if-exists=.env src/workflow/review.ts",

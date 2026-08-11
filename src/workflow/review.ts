@@ -1,3 +1,5 @@
+#!/usr/bin/env -S node --env-file-if-exists=.env
+
 // Standalone review runner: fetches a local git diff, dispatches it to the
 // Reviewer agent, and prints the validated findings.
 //

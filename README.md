@@ -232,6 +232,13 @@ Known limitations:
       exists but is not wired into an automated harness yet)
 - [ ] Support fork PRs (they are skipped today because fork runs do not receive
       repository secrets)
+- [ ] Publish as an npm package and GitHub Actions reusable workflow
+      (see `feature/npm-package` — `package.json` has `bin`, `files`, `exports`;
+      needs `npm publish` + a `workflow_call` trigger on `pr-review.yml`)
+- [ ] User-supplied review skills: scan `.agents/skills/` (or `--skills-dir`)
+      before dispatch, inject discovered `SKILL.md` files into the system prompt
+      so teams can layer on project-specific review rules without changing the
+      agent code
 
 ## Layout
 

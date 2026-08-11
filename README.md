@@ -65,10 +65,6 @@ Fork PRs are un-gated (GitHub denies repository secrets to fork runs +
 the read-only token is the real boundary, not an inline `if:` that a fork
 can delete from its copy).
 
-Fork PRs are un-gated (GitHub denies repository secrets to fork runs +
-the read-only token is the real boundary, not an inline `if:` that a fork
-can delete from its copy).
-
 ## How it works
 
 Local CLI:

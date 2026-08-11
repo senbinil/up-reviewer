@@ -1,4 +1,8 @@
-#!/usr/bin/env -S node --env-file-if-exists=.env
+#!/usr/bin/env node
+
+// Load .env before anything else so provider keys are available to the agent
+// runtime. process.loadEnvFile is Node >=21.7 (engines.gte 24 covers it).
+process.loadEnvFile('.env');
 
 // Standalone review runner: fetches a local git diff, dispatches it to the
 // Reviewer agent, and prints the validated findings.

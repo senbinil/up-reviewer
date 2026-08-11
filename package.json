@@ -12,7 +12,7 @@
   },
   "exports": {
     ".": "./src/agents/reviewer.ts",
-    "./*": "./src/*"
+    "./*.ts": "./src/*.ts"
   },
   "scripts": {
     "check:types": "tsc --noEmit",
@@ -27,7 +27,7 @@
   "author": "",
   "license": "ISC",
   "engines": {
-    "node": ">=24"
+    "node": ">=24.0.0"
   },
   "type": "module",
   "bugs": {

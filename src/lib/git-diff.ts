@@ -32,10 +32,14 @@ export interface GitDiffResult {
  * one-line stat summary. No diff parsing happens here — the raw text goes
  * straight to the model. With no head, git compares base against the working
  * tree.
+ *
+ * @param cwd Directory to run git in; defaults to the process cwd. Exposed so
+ *   tests can run against throwaway repositories.
  */
 export async function diffBetweenRefs(
   base: string,
   head?: string,
+  cwd?: string,
 ): Promise<GitDiffResult> {
   assertGitRef(base, "base");
   if (head !== undefined && head !== "") assertGitRef(head, "head");
@@ -47,13 +51,13 @@ export async function diffBetweenRefs(
   const statResult = await execFileAsync(
     "git",
     ["diff", "--no-color", "--stat", ...range],
-    { timeout: 30_000, maxBuffer: 4 * 1024 * 1024 },
+    { timeout: 30_000, maxBuffer: 4 * 1024 * 1024, cwd },
   );
 
   const diffResult = await execFileAsync(
     "git",
     ["diff", "--no-color", "-U3", ...range],
-    { timeout: 30_000, maxBuffer: 16 * 1024 * 1024 },
+    { timeout: 30_000, maxBuffer: 16 * 1024 * 1024, cwd },
   );
 
   let diff = diffResult.stdout;

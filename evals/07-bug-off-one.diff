@@ -1,9 +1,0 @@
-diff --git a/range.js b/range.js
-index 1111111..2222222 100644
---- a/range.js
-+++ b/range.js
-@@
--for (let i = 0; i <= items.length; i++) {
-+for (let i = 0; i <= items.length; i++) {
-   process(items[i]);
- }

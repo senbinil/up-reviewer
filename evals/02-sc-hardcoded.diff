@@ -1,8 +1,0 @@
-diff --git a/config.js b/config.js
-index 1111111..2222222 100644
---- a/config.js
-+++ b/config.js
-@@ -1,2 +1,2 @@
--const password = process.env.DB_PASSWORD;
-+const password = "123456";
- console.log(password);

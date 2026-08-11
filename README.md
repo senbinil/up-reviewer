@@ -114,7 +114,7 @@ Design decisions (hard-won):
 | `npx flue run src/agents/reviewer.ts -m "Review pull request #N"` | GITHUB ACTIONS MODE (runs under `.github/workflows/pr-review.yml`; requires the Actions env): the agent fetches the PR diff and posts the review to the PR via `gh api`. |
 | `npx flue run src/agents/hello.ts -m "Hi"` | Sanity check that the provider/API key works. |
 | `npm run check:types` | Typecheck (`tsc --noEmit`, strict). |
-| `npm test` | Not implemented yet (stub). |
+| `npm test` | Unit tests via `node --test` (colocated as `src/lib/*.test.ts`). |
 
 ## Finding shape
 
@@ -159,6 +159,9 @@ Done:
 - [x] `post_review` resilience: `line >= 1` schema constraint; if inline
       comments are rejected by GitHub (422), the review falls back to a
       body-only summary so the review still lands
+- [x] Unit tests for `assertGitRef` / `diffBetweenRefs` / `parseFindings` and
+      the render paths, run via `npm test` (`node --test`, colocated in
+      `src/lib/*.test.ts`)
 
 Known limitations:
 
@@ -173,10 +176,6 @@ Known limitations:
 
 ## Next steps
 
-- [ ] Wire the `evals/` corpus (10 seeded diffs + expected findings) into an
-      automated evaluation of the reviewer
-- [ ] Unit tests for `assertGitRef` / `diffBetweenRefs` / `parseFindings`
-      and the workflow's capture/render paths (`npm test` is still a stub)
 - [ ] Replace the 100 KB cap with chunked reviews of large diffs
 - [ ] Support fork PRs (they are skipped today because fork runs do not receive
       repository secrets)
@@ -194,8 +193,8 @@ src/
   lib/render.ts          markdown + GitHub review-comments payload rendering
   types/review.ts        ReviewFinding types
   db.ts                  SQLite persistence adapter (durable conversations)
+  lib/*.test.ts          unit tests for the lib modules (npm test → node --test)
 .github/workflows/       pr-review.yml — review every PR on GitHub Actions
-evals/                   evaluation fixtures (not wired in yet)
 ```
 
 ## Learn more

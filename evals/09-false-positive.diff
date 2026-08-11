@@ -1,6 +1,0 @@
-diff --git a/test.js b/test.js
-index 1111111..2222222 100644
---- a/test.js
-+++ b/test.js
-@@
-+const password = "password";

@@ -1,18 +1,24 @@
 name: CI
 
-# Tests and typecheck on every push to any branch. Runs only on push —
-# not on pull_request — so concurrent pushes to a branch cancel the
-# in-flight run (see concurrency below).
+# Tests and typecheck on every push to any branch and on pull requests.
 #
 # The job carries no secrets (it never references DEEPSEEK_API_KEY) and
 # permissions are read-only contents, so even a branch that rewrites this
 # workflow cannot exfiltrate anything.
 on:
   push:
+  pull_request:
 
-# Cancel superseded runs: a new push to the same branch cancels the in-flight run.
+# One group per branch: a new push to the branch — and the pull_request
+# synchronize event it also fires when a PR is open — cancels any in-flight
+# run from the previous commit on the same branch.
+#
+# Keying on the branch name (github.head_ref for PR events, github.ref_name
+# for pushes) is deliberate: github.ref differs between the two (refs/heads/x
+# vs refs/pull/N/merge), so a ref-based group would let the push run and the
+# PR run of the same commit run in parallel instead of cancelling each other.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 permissions:

@@ -42,7 +42,8 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # Single source of truth for the Node version (.nvmrc).
+          node-version-file: .nvmrc
       - run: npm ci
       - name: Run code review agent
         env:

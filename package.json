@@ -6,7 +6,7 @@
   "scripts": {
     "check:types": "tsc --noEmit",
     "review": "node --env-file-if-exists=.env src/workflow/review.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test \"src/lib/*.test.ts\""
   },
   "repository": {
     "type": "git",
@@ -16,7 +16,7 @@
   "author": "",
   "license": "ISC",
   "engines": {
-    "node": ">=22.18"
+    "node": ">=24"
   },
   "type": "module",
   "bugs": {

@@ -1,0 +1,57 @@
+name: CI
+
+# Tests and typecheck on every push to any branch and on pull requests
+# (opened/reopened only). Push is filtered to branches, not tags.
+#
+# synchronize is deliberately NOT a trigger: every PR update is a push, so
+# the push event already runs CI on the head commit. Adding synchronize
+# would fire a second run per commit; concurrency would cancel one of the
+# twins, and the PR would show a cancelled (not-successful) check forever.
+#
+# Fork PRs run un-gated — no inline if: on the job, because a fork can
+# delete it from its copy of this workflow. The real boundary is that
+# GitHub never passes repository secrets to fork runs and limits the
+# GITHUB_TOKEN to read-only contents, so fork code on shared runners cannot
+# exfiltrate anything. Do not add secrets to this workflow.
+on:
+  push:
+    branches: ['**']
+    # Docs-only pushes skip CI to save runner minutes; code pushes always
+    # run. Note: a docs-only push to an open PR leaves the new head commit
+    # without a fresh check (there is no synchronize trigger), so a future
+    # branch protection rule requiring the test check would show "expected"
+    # until the next code push. pull_request below is intentionally not
+    # path-filtered so opening a PR always produces a check.
+    paths-ignore: ['**/*.md']
+  pull_request:
+    types: [opened, reopened]
+
+# One group per (head repository, branch): a new push to the branch cancels
+# any in-flight run from the previous commit on the same branch. Scoping by
+# head repo id isolates fork PRs from the base repo's pool, while same-repo
+# PR runs share the group with pushes of the same branch.
+# github.head_ref is set for pull_request events and empty for pushes, so
+# `head_ref || ref_name` unifies both on the branch name — otherwise push
+# runs (refs/heads/x) and PR runs (refs/pull/N/merge) would be separate
+# groups and run duplicates in parallel.
+concurrency:
+  group: ci-${{ github.event.pull_request.head.repo.id || github.repository_id }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Single source of truth for the Node version (.nvmrc).
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run check:types
+      - run: npm test

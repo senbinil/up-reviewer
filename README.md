@@ -17,7 +17,7 @@ npm run review -- main feature/x   # review a branch diff
 npm run review -- --format json main feature/x   # API-ready JSON
 ```
 
-Requires Node >= 22.18 (native TypeScript type-stripping).
+Requires Node >= 24 (native TypeScript type-stripping).
 
 ## Review pull requests on GitHub Actions
 
@@ -48,6 +48,22 @@ pull request:
   `process.env` — the model never sees the token (Flue docs' "tighter
   boundary" pattern: a narrow tool reads the secret, the agent only sees
   parameters and results).
+
+## CI
+
+`.github/workflows/ci.yml` runs `npm run check:types` and `npm test` on
+every push to any branch and on pull requests (opened/reopened only —
+every PR update is a push, so `synchronize` would be a duplicate). It
+runs on Node 24 (read from `.nvmrc`), carries no secrets — permissions are read-only contents.
+
+Concurrency is grouped per branch with `cancel-in-progress`: a new push
+cancels the in-flight run from the previous commit on the same branch, so
+CI never backs up behind stale runs. Docs-only pushes (markdown) skip CI
+to save runner minutes.
+
+Fork PRs are un-gated (GitHub denies repository secrets to fork runs +
+the read-only token is the real boundary, not an inline `if:` that a fork
+can delete from its copy).
 
 ## How it works
 
@@ -114,7 +130,7 @@ Design decisions (hard-won):
 | `npx flue run src/agents/reviewer.ts -m "Review pull request #N"` | GITHUB ACTIONS MODE (runs under `.github/workflows/pr-review.yml`; requires the Actions env): the agent fetches the PR diff and posts the review to the PR via `gh api`. |
 | `npx flue run src/agents/hello.ts -m "Hi"` | Sanity check that the provider/API key works. |
 | `npm run check:types` | Typecheck (`tsc --noEmit`, strict). |
-| `npm test` | Not implemented yet (stub). |
+| `npm test` | Unit tests via `node --test` (colocated as `src/lib/*.test.ts`). |
 
 ## Finding shape
 
@@ -126,7 +142,7 @@ Validated by `submit_findings` (schema in `src/lib/findings.ts`):
   "line": 42,
   "severity": "high | medium | low",
   "title": "short headline",
-  "body": "why it matters + suggested fix"
+  "body": "problem + suggested fix"
 }]
 ```
 
@@ -134,6 +150,31 @@ Validated by `submit_findings` (schema in `src/lib/findings.ts`):
   `@@` hunk headers; omitted for file-level findings (e.g. missing tests).
 - `high` = correctness/security/reliability, `medium` = performance/
   maintainability, `low` = readability/style.
+- The model is instructed to keep `title` under ~8 words and `body` to
+  1-2 sentences (problem + fix), so reviews stay short and focused. The
+  schema also hard-enforces these limits (`v.maxLength(100)` for `title`,
+  `v.maxLength(300)` for `body`) — a tool call with a finding that exceeds
+  them is rejected, and the model retries shorter.
+
+## Response templates
+
+The human- and API-facing output is rendered from plain-text templates in
+`templates/`, so the format can be changed without touching code. Each
+`{{placeholder}}` is substituted by `src/lib/render.ts`; unknown
+placeholders render empty. Model-produced text is sanitized before
+substitution (control characters stripped), so templates can't be used to
+smuggle terminal escapes or invalid paths.
+
+| Template | Used for | Placeholders |
+| --- | --- | --- |
+| `templates/review.summary.md` | The whole report (local CLI output + PR review body) | `{{count}}`, `{{high}}`, `{{medium}}`, `{{low}}`, and **`{{findings}}`** — the finding blocks joined by blank lines |
+| `templates/review.finding.md` | One block per finding, repeated inside `{{findings}}` | `{{severity_label}}` (emoji + name), `{{severity}}` (raw), `{{file}}`, `{{line}}`, `{{anchor}}` (`` `file:line` `` or `` `file` ``), `{{title}}`, `{{body}}` |
+| `templates/review.comment.md` | The body of each GitHub inline review comment | same per-finding placeholders |
+| `templates/review.clean.md` | Rendered when the review found nothing to report | (none) |
+
+To restyle output, edit the templates — e.g. switch `{{severity_label}}` to
+`{{severity}}` for plain text, or change the header line in the summary
+without touching `render.ts`.
 
 ## Current progress
 
@@ -159,6 +200,18 @@ Done:
 - [x] `post_review` resilience: `line >= 1` schema constraint; if inline
       comments are rejected by GitHub (422), the review falls back to a
       body-only summary so the review still lands
+- [x] Unit tests for `assertGitRef` / `diffBetweenRefs` / `parseFindings` and
+      the render paths, run via `npm test` (`node --test`, colocated in
+      `src/lib/*.test.ts`)
+- [x] CI workflow (`.github/workflows/ci.yml`): runs `check:types` and
+      `npm test` on every push and PR, with per-branch concurrency -
+      cancellation so CI never backs up behind stale runs
+- [x] Template-based response format (`templates/`): summary, finding, and
+      inline-comment output is rendered from plain-text markdown templates;
+      the format can be restyled without touching code
+- [x] Schema-enforced brevity: `title` capped at 100 chars, `body` at 300
+      chars — the model's tool call is rejected if a finding exceeds the cap,
+      so reviews stay short and focused
 
 Known limitations:
 
@@ -173,11 +226,10 @@ Known limitations:
 
 ## Next steps
 
-- [ ] Wire the `evals/` corpus (10 seeded diffs + expected findings) into an
-      automated evaluation of the reviewer
-- [ ] Unit tests for `assertGitRef` / `diffBetweenRefs` / `parseFindings`
-      and the workflow's capture/render paths (`npm test` is still a stub)
 - [ ] Replace the 100 KB cap with chunked reviews of large diffs
+- [ ] Rebuild a quality-eval harness: seeded diffs with golden findings
+      compared against the agent's output on every run (the `evals/` corpus
+      exists but is not wired into an automated harness yet)
 - [ ] Support fork PRs (they are skipped today because fork runs do not receive
       repository secrets)
 
@@ -191,11 +243,13 @@ src/
   workflow/review.ts     the local runner: git diff → dispatch → validate → render
   lib/git-diff.ts        shell-safe `git diff` fetch (execFile, no parsing)
   lib/findings.ts        shared findings schema + tolerant reply parser
-  lib/render.ts          markdown + GitHub review-comments payload rendering
+  lib/render.ts          template-based output rendering (markdown + GitHub payload)
   types/review.ts        ReviewFinding types
   db.ts                  SQLite persistence adapter (durable conversations)
-.github/workflows/       pr-review.yml — review every PR on GitHub Actions
-evals/                   evaluation fixtures (not wired in yet)
+  lib/*.test.ts          unit tests for the lib modules (npm test → node --test)
+.github/workflows/       pr-review.yml + ci.yml — review every PR; CI on every push
+evals/                   seeded diffs + golden reviews (not wired in yet)
+templates/               response format templates (summary, finding, comment, clean)
 ```
 
 ## Learn more

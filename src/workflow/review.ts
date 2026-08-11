@@ -2,7 +2,9 @@
 
 // Load .env before anything else so provider keys are available to the agent
 // runtime. process.loadEnvFile is Node >=21.7 (engines.gte 24 covers it).
-process.loadEnvFile('.env');
+// The file is gitignored — missing .env on fresh checkout or CI is not an
+// error, matching the tolerant --env-file-if-exists behavior.
+try { process.loadEnvFile('.env'); } catch {}
 
 // Standalone review runner: fetches a local git diff, dispatches it to the
 // Reviewer agent, and prints the validated findings.

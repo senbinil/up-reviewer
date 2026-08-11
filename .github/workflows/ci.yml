@@ -16,6 +16,13 @@ name: CI
 on:
   push:
     branches: ['**']
+    # Docs-only pushes skip CI to save runner minutes; code pushes always
+    # run. Note: a docs-only push to an open PR leaves the new head commit
+    # without a fresh check (there is no synchronize trigger), so a future
+    # branch protection rule requiring the test check would show "expected"
+    # until the next code push. pull_request below is intentionally not
+    # path-filtered so opening a PR always produces a check.
+    paths-ignore: ['**/*.md', '.nvmrc']
   pull_request:
     types: [opened, reopened]
 

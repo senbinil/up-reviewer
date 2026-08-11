@@ -6,7 +6,7 @@
   "scripts": {
     "check:types": "tsc --noEmit",
     "review": "node --env-file-if-exists=.env src/workflow/review.ts",
-    "test": "node --test"
+    "test": "node --test \"src/lib/*.test.ts\""
   },
   "repository": {
     "type": "git",

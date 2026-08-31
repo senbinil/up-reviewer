@@ -69,49 +69,26 @@ AGENT_MODEL=mimo/mimo-model-id \
 
 See `.env.example` for a template.
 
-## Requirements
+## Install
 
-**Node >= 24 for development.** Sources are TypeScript with `.ts` import
-extensions and run directly on Node's native type-stripping (`npm run review`,
-`npm test`, `npx flue run ...`), so the dev toolchain needs Node >= 24
-(`package.json` `engines`, `.nvmrc`).
+```sh
+npm install up-reviewer
+```
 
-**The published package ships compiled JS.** `npm run build` emits `dist/`
-(JavaScript + `.d.ts`, with `.ts` imports rewritten to `.js`), and `prepack`
-runs it before `npm pack`/`npm publish` — the tarball's `review-diff` bin and
-`exports` point at plain JavaScript, so consumers need no type-stripping; the
-runtime floor is `@flue/runtime`'s (>= 22.19).
+Published at [npmjs.com/package/up-reviewer](https://www.npmjs.com/package/up-reviewer).
 
-## Review pull requests on GitHub Actions
+## GitHub Actions
 
-The same agent runs as a GitHub Actions workflow that posts a review to every
-pull request:
+The agent reviews every PR automatically via a GitHub Actions workflow.
 
-- `.github/workflows/pr-review.yml` triggers on `pull_request_target`
-  (opened and synchronize), runs `npx flue run src/agents/reviewer.ts --message
-  "Review pull request #N"`, and grants `pull-requests: write` so the review
-  lands.
-- `pull_request_target` (not `pull_request`) deliberately: the workflow and
-  its `npm ci` / agent code come from the base branch, never from the PR's
-  merge commit — a PR author cannot rewrite the workflow to exfiltrate
-  `DEEPSEEK_API_KEY`. The reviewer gets the diff over the API (`gh pr
-  diff`) and never executes PR code. Consequence: the workflow only activates
-  once it exists on the default branch, so the PR that introduces it is not
-  auto-reviewed.
-- The agent runs in GITHUB ACTIONS MODE (decided by the environment, not by
-  the message): it fetches the PR diff with `gh pr diff` (via the
-  `fetch_pr_diff` tool), reviews it, and posts the findings as a PR review
-  (event `COMMENT`) with inline comments via `post_review`.
-- After the run, the workflow verifies via the API that a review was actually
-  submitted by this run (comparing `submitted_at` to the job start) and fails
-  the job loudly otherwise — a model that replies in prose instead of posting
-  is a visible failure, not a silent no-op.
-- Add `AGENT_API_KEY` (or provider-specific key like `XIAOMI_API_KEY`) as a
-  repository secret. Set `AGENT_MODEL` in the workflow env to choose the model
-  (e.g., `xiaomi/mimo-v2.5`). `GITHUB_TOKEN` is provided automatically and
-  passed as `GH_TOKEN`; the gh-backed tools read it from `process.env` — the
-  model never sees the token (Flue docs' "tighter boundary" pattern: a narrow
-  tool reads the secret, the agent only sees parameters and results).
+**Setup:**
+1. Add `AGENT_API_KEY` (or provider key like `XIAOMI_API_KEY`) as a repository secret
+2. Drop [samples/review-pr.yml](samples/review-pr.yml) into `.github/workflows/`
+3. Push to the default branch — it activates on the next PR
+
+The workflow uses `pull_request_target` so only base-branch code runs with secrets.
+Fork PRs are skipped. After each run, it verifies a review was actually posted
+and fails loudly otherwise.
 
 ## CI
 
@@ -186,62 +163,6 @@ Design decisions (hard-won):
   an empty diff short-circuits without a model call.
 - **Untrusted diff text is marked as data** in the prompt (injection surface).
 
-## Scripts
-
-| Command | What it does |
-| --- | --- |
-| `npm run review [-- <base> [head]] [-- --format json]` | Full review of a local git diff. Default output is GitHub-flavored markdown (paste into a PR comment). `--format json` emits `{ summary, comments }` where `comments` match the GitHub review-comments API shape (`path`, `line`, `body`) for scripting. `base` defaults to `HEAD` (working-tree review). |
-| `npx flue run src/agents/reviewer.ts -m "<diff text>"` | LOCAL MODE: interactive/durable agent conversation. The diff must be in the message — the agent reviews it and calls `submit_findings`. Pass `--id <id>` to continue a conversation. |
-| `npx flue run src/agents/reviewer.ts -m "Review pull request #N"` | GITHUB ACTIONS MODE (runs under `.github/workflows/pr-review.yml`; requires the Actions env): the agent fetches the PR diff and posts the review to the PR via `gh api`. |
-| `npx flue run src/agents/hello.ts -m "Hi"` | Sanity check that the provider/API key works. |
-| `npm run check:types` | Typecheck (`tsc --noEmit`, strict). |
-| `npm run build` | Compile `src/` to `dist/` (tsc; rewrites `.ts` imports to `.js`; emits `.d.ts`). Runs automatically via `prepack` before publishing. |
-| `npm test` | Unit tests via `node --test` (colocated as `src/lib/*.test.ts`). |
-
-## Finding shape
-
-Validated by `submit_findings` (schema in `src/lib/findings.ts`):
-
-```json
-[{
-  "file": "src/foo.ts",
-  "line": 42,
-  "severity": "high | medium | low",
-  "title": "short headline",
-  "body": "problem + suggested fix"
-}]
-```
-
-- `line` is 1-based in the HEAD revision, computed by the model from the
-  `@@` hunk headers; omitted for file-level findings (e.g. missing tests).
-- `high` = correctness/security/reliability, `medium` = performance/
-  maintainability, `low` = readability/style.
-- The model is instructed to keep `title` under ~8 words and `body` to
-  1-2 sentences (problem + fix), so reviews stay short and focused. The
-  schema also hard-enforces these limits (`v.maxLength(100)` for `title`,
-  `v.maxLength(300)` for `body`) — a tool call with a finding that exceeds
-  them is rejected, and the model retries shorter.
-
-## Response templates
-
-The human- and API-facing output is rendered from plain-text templates in
-`templates/`, so the format can be changed without touching code. Each
-`{{placeholder}}` is substituted by `src/lib/render.ts`; unknown
-placeholders render empty. Model-produced text is sanitized before
-substitution (control characters stripped), so templates can't be used to
-smuggle terminal escapes or invalid paths.
-
-| Template | Used for | Placeholders |
-| --- | --- | --- |
-| `templates/review.summary.md` | The whole report (local CLI output + PR review body) | `{{count}}`, `{{high}}`, `{{medium}}`, `{{low}}`, and **`{{findings}}`** — the finding blocks joined by blank lines |
-| `templates/review.finding.md` | One block per finding, repeated inside `{{findings}}` | `{{severity_label}}` (emoji + name), `{{severity}}` (raw), `{{file}}`, `{{line}}`, `{{anchor}}` (`` `file:line` `` or `` `file` ``), `{{title}}`, `{{body}}` |
-| `templates/review.comment.md` | The body of each GitHub inline review comment | same per-finding placeholders |
-| `templates/review.clean.md` | Rendered when the review found nothing to report | (none) |
-
-To restyle output, edit the templates — e.g. switch `{{severity_label}}` to
-`{{severity}}` for plain text, or change the header line in the summary
-without touching `render.ts`.
-
 ## Current progress
 
 Done:
@@ -309,26 +230,6 @@ Known limitations:
       before dispatch, inject discovered `SKILL.md` files into the system prompt
       so teams can layer on project-specific review rules without changing the
       agent code
-
-## Layout
-
-```
-src/
-  app.ts                 custom provider registration (env-based model config)
-  agents/reviewer.ts     the review agent (LOCAL MODE + GITHUB ACTIONS MODE,
-                         tools: submit_findings / fetch_pr_diff / post_review)
-  agents/hello.ts        boilerplate hello agent (provider sanity check)
-  workflow/review.ts     the local runner: git diff → dispatch → validate → render
-  lib/git-diff.ts        shell-safe `git diff` fetch (execFile, no parsing)
-  lib/findings.ts        shared findings schema + tolerant reply parser
-  lib/render.ts          template-based output rendering (markdown + GitHub payload)
-  types/review.ts        ReviewFinding types
-  db.ts                  SQLite persistence adapter (durable conversations)
-  lib/*.test.ts          unit tests for the lib modules (npm test → node --test)
-.github/workflows/       pr-review.yml + ci.yml — review every PR; CI on every push
-evals/                   seeded diffs + golden reviews (not wired in yet)
-templates/               response format templates (summary, finding, comment, clean)
-```
 
 ## Learn more
 

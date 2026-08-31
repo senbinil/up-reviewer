@@ -12,7 +12,8 @@
   },
   "exports": {
     ".": "./src/agents/reviewer.ts",
-    "./*.ts": "./src/*.ts"
+    "./agents/reviewer.ts": "./src/agents/reviewer.ts",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "check:types": "tsc --noEmit",

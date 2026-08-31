@@ -19,6 +19,15 @@ npm run review -- --format json main feature/x   # API-ready JSON
 
 Requires Node >= 24 (native TypeScript type-stripping).
 
+## Requirements
+
+**Node >= 24.** The package ships TypeScript sources and runs them directly on
+Node's native type-stripping — there is no build/compile step. The
+`review-diff` bin and all `npm run` scripts therefore need a Node version that
+strips types at runtime; older LTS releases are not supported. `package.json`
+declares `"engines": { "node": ">=24.0.0" }` (npm warns on install if your
+Node is older) and `.nvmrc` pins 24.
+
 ## Review pull requests on GitHub Actions
 
 The same agent runs as a GitHub Actions workflow that posts a review to every

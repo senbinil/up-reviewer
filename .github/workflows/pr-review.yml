@@ -3,7 +3,7 @@ name: Code Review
 # pull_request_target, not pull_request: the workflow must never execute
 # PR-controlled code with secrets. Under pull_request the workflow runs from
 # the PR's merge commit — the PR author could rewrite this file, the agent,
-# or package.json lifecycle scripts to exfiltrate DEEPSEEK_API_KEY. Under
+# or package.json lifecycle scripts to exfiltrate AGENT_API_KEY. Under
 # pull_request_target the workflow file and GITHUB_SHA come from the base
 # branch, and actions/checkout below pins the same base SHA, so only trusted
 # code runs. The reviewer never needs the PR's code on disk: it fetches the
@@ -47,7 +47,13 @@ jobs:
       - run: npm ci
       - name: Run code review agent
         env:
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          AGENT_MODEL: ${{ vars.AGENT_MODEL || 'xiaomi/mimo-v2.5' }}
+          AGENT_API_KEY: ${{ secrets.AGENT_API_KEY || secrets.XIAOMI_API_KEY }}
+          AGENT_PROVIDER_BASE_URL: ${{ vars.AGENT_PROVIDER_BASE_URL }}
+          AGENT_PROVIDER_API: ${{ vars.AGENT_PROVIDER_API || 'openai-completions' }}
+          AGENT_MODEL_MAX_TOKENS: ${{ vars.AGENT_MODEL_MAX_TOKENS || '8192' }}
+          AGENT_MODEL_CONTEXT_WINDOW: ${{ vars.AGENT_MODEL_CONTEXT_WINDOW || '128000' }}
+          AGENT_MODEL_REASONING: ${{ vars.AGENT_MODEL_REASONING || 'false' }}
           # PR_NUMBER is a trusted source for the agent (github.event is set
           # under both pull_request and pull_request_target; GITHUB_REF alone
           # is the base ref under pull_request_target).

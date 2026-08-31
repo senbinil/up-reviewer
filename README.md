@@ -1,4 +1,4 @@
-# up-github-agents
+# up-reviewer
 
 A [Flue](https://flueframework.com) agent that reviews local git diffs and
 reports **structured, line-anchored findings** (file, line, severity, title,

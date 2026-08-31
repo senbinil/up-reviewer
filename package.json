@@ -1,5 +1,5 @@
 {
-  "name": "up-github-agents",
+  "name": "up-reviewer",
   "version": "0.1.0",
   "description": "Flue agent that reviews git diffs and reports structured, line-anchored findings",
   "files": [

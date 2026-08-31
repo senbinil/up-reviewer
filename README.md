@@ -1,9 +1,8 @@
 # up-reviewer
 
 A [Flue](https://flueframework.com) agent that reviews local git diffs and
-reports **structured, line-anchored findings** (file, line, severity, title,
-body). Built for the "review your change before you commit" loop, and later
-for GitHub PR review.
+GitHub PRs, reporting **line-anchored findings** (file, line, severity, title,
+body).
 
 ## Quick start
 

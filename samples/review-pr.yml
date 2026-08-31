@@ -41,6 +41,11 @@ jobs:
   review:
     uses: binilsn/up-github-agents/.github/workflows/pr-review.yml@main
     secrets:
-      AGENT_API_KEY: ${{ secrets.AGENT_API_KEY }}
+      AGENT_API_KEY: ${{ secrets.AGENT_API_KEY || secrets.XIAOMI_API_KEY }}
+      AGENT_PROVIDER_BASE_URL: ${{ secrets.AGENT_PROVIDER_BASE_URL }}
+      AGENT_PROVIDER_API: ${{ secrets.AGENT_PROVIDER_API }}
+      AGENT_MODEL_MAX_TOKENS: ${{ secrets.AGENT_MODEL_MAX_TOKENS }}
+      AGENT_MODEL_CONTEXT_WINDOW: ${{ secrets.AGENT_MODEL_CONTEXT_WINDOW }}
+      AGENT_MODEL_REASONING: ${{ secrets.AGENT_MODEL_REASONING }}
     vars:
       AGENT_MODEL: ${{ vars.AGENT_MODEL }}

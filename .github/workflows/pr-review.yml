@@ -52,7 +52,7 @@ jobs:
           AGENT_PROVIDER_BASE_URL: ${{ vars.AGENT_PROVIDER_BASE_URL }}
           AGENT_PROVIDER_API: ${{ vars.AGENT_PROVIDER_API || 'openai-completions' }}
           AGENT_MODEL_MAX_TOKENS: ${{ vars.AGENT_MODEL_MAX_TOKENS || '8192' }}
-          AGENT_MODEL_CONTEXT_WINDOW: ${{ vars.AGENT_MODEL_CONTEXT_WINDOW || '128000' }}
+          AGENT_MODEL_CONTEXT_WINDOW: ${{ vars.AGENT_MODEL_CONTEXT_WINDOW || '1000000' }}
           AGENT_MODEL_REASONING: ${{ vars.AGENT_MODEL_REASONING || 'false' }}
           # PR_NUMBER is a trusted source for the agent (github.event is set
           # under both pull_request and pull_request_target; GITHUB_REF alone

@@ -35,7 +35,7 @@ Ollama) are registered dynamically.
 | `AGENT_PROVIDER_API` | No | `openai-completions` | Wire protocol: `openai-completions` or `anthropic-messages` |
 | `AGENT_API_KEY` | No | — | API key for custom providers |
 | `AGENT_MODEL_MAX_TOKENS` | No | `8192` | Max output tokens |
-| `AGENT_MODEL_CONTEXT_WINDOW` | No | `128000` | Context window size |
+| `AGENT_MODEL_CONTEXT_WINDOW` | No | `1000000` | Context window size (1M) |
 | `AGENT_MODEL_REASONING` | No | `false` | Enable reasoning/thinking (`true`/`false`) |
 
 ### Built-in Providers

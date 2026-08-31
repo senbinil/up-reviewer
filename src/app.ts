@@ -108,7 +108,7 @@ async function registerCustomProvider(): Promise<void> {
 
   // Model-specific configuration
   const maxTokens = Number(process.env.AGENT_MODEL_MAX_TOKENS) || 8192;
-  const contextWindow = Number(process.env.AGENT_MODEL_CONTEXT_WINDOW) || 128000;
+  const contextWindow = Number(process.env.AGENT_MODEL_CONTEXT_WINDOW) || 1000000;
   const reasoning = process.env.AGENT_MODEL_REASONING === 'true';
 
   if (!baseUrl) {

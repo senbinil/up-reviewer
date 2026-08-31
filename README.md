@@ -19,6 +19,19 @@ npm run review -- --format json main feature/x   # API-ready JSON
 
 Requires Node >= 24 (native TypeScript type-stripping).
 
+## Requirements
+
+**Node >= 24 for development.** Sources are TypeScript with `.ts` import
+extensions and run directly on Node's native type-stripping (`npm run review`,
+`npm test`, `npx flue run ...`), so the dev toolchain needs Node >= 24
+(`package.json` `engines`, `.nvmrc`).
+
+**The published package ships compiled JS.** `npm run build` emits `dist/`
+(JavaScript + `.d.ts`, with `.ts` imports rewritten to `.js`), and `prepack`
+runs it before `npm pack`/`npm publish` — the tarball's `review-diff` bin and
+`exports` point at plain JavaScript, so consumers need no type-stripping; the
+runtime floor is `@flue/runtime`'s (>= 22.19).
+
 ## Review pull requests on GitHub Actions
 
 The same agent runs as a GitHub Actions workflow that posts a review to every
@@ -130,6 +143,7 @@ Design decisions (hard-won):
 | `npx flue run src/agents/reviewer.ts -m "Review pull request #N"` | GITHUB ACTIONS MODE (runs under `.github/workflows/pr-review.yml`; requires the Actions env): the agent fetches the PR diff and posts the review to the PR via `gh api`. |
 | `npx flue run src/agents/hello.ts -m "Hi"` | Sanity check that the provider/API key works. |
 | `npm run check:types` | Typecheck (`tsc --noEmit`, strict). |
+| `npm run build` | Compile `src/` to `dist/` (tsc; rewrites `.ts` imports to `.js`; emits `.d.ts`). Runs automatically via `prepack` before publishing. |
 | `npm test` | Unit tests via `node --test` (colocated as `src/lib/*.test.ts`). |
 
 ## Finding shape
@@ -232,6 +246,13 @@ Known limitations:
       exists but is not wired into an automated harness yet)
 - [ ] Support fork PRs (they are skipped today because fork runs do not receive
       repository secrets)
+- [ ] Publish as an npm package and GitHub Actions reusable workflow
+      (see `feature/npm-package` — `package.json` has `bin`, `files`, `exports`;
+      needs `npm publish` + a `workflow_call` trigger on `pr-review.yml`)
+- [ ] User-supplied review skills: scan `.agents/skills/` (or `--skills-dir`)
+      before dispatch, inject discovered `SKILL.md` files into the system prompt
+      so teams can layer on project-specific review rules without changing the
+      agent code
 
 ## Layout
 

@@ -1,5 +1,14 @@
+#!/usr/bin/env node
+
+// .env is loaded by src/lib/load-env.ts, imported FIRST below: ESM imports
+// are hoisted and evaluated before this module's body, so loading here would
+// run after every imported module — see lib/load-env.ts.
+
 // Standalone review runner: fetches a local git diff, dispatches it to the
 // Reviewer agent, and prints the validated findings.
+//
+// Development runs the TypeScript sources on Node >= 24 (native
+// type-stripping); the published bin ships compiled JS from `npm run build`.
 //
 // Usage (from the repo root):
 //   node --env-file-if-exists=.env src/workflow/review.ts                         # worktree vs HEAD
@@ -13,6 +22,8 @@
 //
 // Note: `git diff` only sees tracked changes — run `git add -N <new-file>` to
 // include brand-new files in a working-tree review.
+import '../lib/load-env.ts'; // MUST stay the first import — see lib/load-env.ts
+
 import { init } from '@flue/runtime';
 import { start } from '@flue/runtime/node';
 import * as v from 'valibot';

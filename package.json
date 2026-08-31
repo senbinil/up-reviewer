@@ -3,19 +3,25 @@
   "version": "1.0.0",
   "description": "Flue agent that reviews git diffs and reports structured, line-anchored findings",
   "files": [
-    "src/",
+    "dist/",
     "templates/",
     "flue.config.ts"
   ],
   "bin": {
-    "review-diff": "./src/workflow/review.ts"
+    "review-diff": "./dist/workflow/review.js"
   },
   "exports": {
-    ".": "./src/agents/reviewer.ts",
-    "./agents/reviewer.ts": "./src/agents/reviewer.ts",
+    ".": {
+      "types": "./dist/agents/reviewer.d.ts",
+      "import": "./dist/agents/reviewer.js"
+    },
     "./package.json": "./package.json"
   },
+  "main": "./dist/agents/reviewer.js",
+  "types": "./dist/agents/reviewer.d.ts",
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
     "check:types": "tsc --noEmit",
     "review": "node --env-file-if-exists=.env src/workflow/review.ts",
     "test": "node --test \"src/lib/*.test.ts\""

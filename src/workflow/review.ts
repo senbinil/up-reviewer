@@ -1,22 +1,14 @@
 #!/usr/bin/env node
 
-// Load .env before anything else so provider keys are available to the agent
-// runtime. process.loadEnvFile is Node >=21.7 (engines.gte 24 covers it).
-// The file is gitignored — missing .env on fresh checkout or CI is not an
-// error, matching the tolerant --env-file-if-exists behavior. Anything
-// beyond a missing file (malformed .env, permissions, ...) is rethrown:
-// swallowing it would surface later as a confusing provider-key failure.
-try {
-  process.loadEnvFile('.env');
-} catch (e) {
-  if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
-}
+// .env is loaded by src/lib/load-env.ts, imported FIRST below: ESM imports
+// are hoisted and evaluated before this module's body, so loading here would
+// run after every imported module — see lib/load-env.ts.
 
 // Standalone review runner: fetches a local git diff, dispatches it to the
 // Reviewer agent, and prints the validated findings.
 //
-// Requires Node >= 24: the bin ships as TypeScript and runs on Node's native
-// type-stripping (no build step) — see package.json "engines" and .nvmrc.
+// Development runs the TypeScript sources on Node >= 24 (native
+// type-stripping); the published bin ships compiled JS from `npm run build`.
 //
 // Usage (from the repo root):
 //   node --env-file-if-exists=.env src/workflow/review.ts                         # worktree vs HEAD
@@ -30,6 +22,8 @@ try {
 //
 // Note: `git diff` only sees tracked changes — run `git add -N <new-file>` to
 // include brand-new files in a working-tree review.
+import '../lib/load-env.ts'; // MUST stay the first import — see lib/load-env.ts
+
 import { init } from '@flue/runtime';
 import { start } from '@flue/runtime/node';
 import * as v from 'valibot';

@@ -21,12 +21,16 @@ Requires Node >= 24 (native TypeScript type-stripping).
 
 ## Requirements
 
-**Node >= 24.** The package ships TypeScript sources and runs them directly on
-Node's native type-stripping — there is no build/compile step. The
-`review-diff` bin and all `npm run` scripts therefore need a Node version that
-strips types at runtime; older LTS releases are not supported. `package.json`
-declares `"engines": { "node": ">=24.0.0" }` (npm warns on install if your
-Node is older) and `.nvmrc` pins 24.
+**Node >= 24 for development.** Sources are TypeScript with `.ts` import
+extensions and run directly on Node's native type-stripping (`npm run review`,
+`npm test`, `npx flue run ...`), so the dev toolchain needs Node >= 24
+(`package.json` `engines`, `.nvmrc`).
+
+**The published package ships compiled JS.** `npm run build` emits `dist/`
+(JavaScript + `.d.ts`, with `.ts` imports rewritten to `.js`), and `prepack`
+runs it before `npm pack`/`npm publish` — the tarball's `review-diff` bin and
+`exports` point at plain JavaScript, so consumers need no type-stripping; the
+runtime floor is `@flue/runtime`'s (>= 22.19).
 
 ## Review pull requests on GitHub Actions
 
@@ -139,6 +143,7 @@ Design decisions (hard-won):
 | `npx flue run src/agents/reviewer.ts -m "Review pull request #N"` | GITHUB ACTIONS MODE (runs under `.github/workflows/pr-review.yml`; requires the Actions env): the agent fetches the PR diff and posts the review to the PR via `gh api`. |
 | `npx flue run src/agents/hello.ts -m "Hi"` | Sanity check that the provider/API key works. |
 | `npm run check:types` | Typecheck (`tsc --noEmit`, strict). |
+| `npm run build` | Compile `src/` to `dist/` (tsc; rewrites `.ts` imports to `.js`; emits `.d.ts`). Runs automatically via `prepack` before publishing. |
 | `npm test` | Unit tests via `node --test` (colocated as `src/lib/*.test.ts`). |
 
 ## Finding shape

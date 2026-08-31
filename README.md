@@ -19,6 +19,56 @@ npm run review -- --format json main feature/x   # API-ready JSON
 
 Requires Node >= 24 (native TypeScript type-stripping).
 
+## Model Configuration
+
+The agent reads its model and provider from environment variables, with sensible
+defaults. Built-in providers work out of the box; custom providers (e.g., Mimo,
+Ollama) are registered dynamically.
+
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `AGENT_MODEL` | No | `deepseek/deepseek-v4-flash` | Model specifier (`provider/model-id`) |
+| `AGENT_PROVIDER_ID` | No | Extracted from `AGENT_MODEL` | Override provider ID for custom providers |
+| `AGENT_PROVIDER_BASE_URL` | No* | — | Base URL for custom providers (*required for custom providers) |
+| `AGENT_PROVIDER_API` | No | `openai-completions` | Wire protocol: `openai-completions` or `anthropic-messages` |
+| `AGENT_API_KEY` | No | — | API key for custom providers |
+| `AGENT_MODEL_MAX_TOKENS` | No | `8192` | Max output tokens |
+| `AGENT_MODEL_CONTEXT_WINDOW` | No | `1000000` | Context window size (1M) |
+| `AGENT_MODEL_REASONING` | No | `false` | Enable reasoning/thinking (`true`/`false`) |
+
+### Built-in Providers
+
+No extra configuration needed — just set the provider's API key:
+
+```bash
+# DeepSeek (default)
+DEEPSEEK_API_KEY=sk-xxx npm run review
+
+# Anthropic
+ANTHROPIC_API_KEY=sk-ant-xxx AGENT_MODEL=anthropic/claude-sonnet-4-6 npm run review
+
+# OpenAI
+OPENAI_API_KEY=sk-xxx AGENT_MODEL=openai/gpt-5.5 npm run review
+```
+
+### Custom Providers
+
+For providers not in the built-in set (Mimo, Ollama, etc.), register dynamically:
+
+```bash
+AGENT_MODEL=mimo/mimo-model-id \
+  AGENT_PROVIDER_BASE_URL=https://api.mimo.example.com/v1 \
+  AGENT_API_KEY=sk-xxx \
+  AGENT_MODEL_MAX_TOKENS=16384 \
+  AGENT_MODEL_CONTEXT_WINDOW=256000 \
+  AGENT_MODEL_REASONING=true \
+  npm run review
+```
+
+See `.env.example` for a template.
+
 ## Requirements
 
 **Node >= 24 for development.** Sources are TypeScript with `.ts` import
@@ -56,11 +106,12 @@ pull request:
   submitted by this run (comparing `submitted_at` to the job start) and fails
   the job loudly otherwise — a model that replies in prose instead of posting
   is a visible failure, not a silent no-op.
-- Add `DEEPSEEK_API_KEY` as a repository secret. `GITHUB_TOKEN` is provided
-  automatically and passed as `GH_TOKEN`; the gh-backed tools read it from
-  `process.env` — the model never sees the token (Flue docs' "tighter
-  boundary" pattern: a narrow tool reads the secret, the agent only sees
-  parameters and results).
+- Add `AGENT_API_KEY` (or provider-specific key like `XIAOMI_API_KEY`) as a
+  repository secret. Set `AGENT_MODEL` in the workflow env to choose the model
+  (e.g., `xiaomi/mimo-v2.5`). `GITHUB_TOKEN` is provided automatically and
+  passed as `GH_TOKEN`; the gh-backed tools read it from `process.env` — the
+  model never sees the token (Flue docs' "tighter boundary" pattern: a narrow
+  tool reads the secret, the agent only sees parameters and results).
 
 ## CI
 
@@ -86,7 +137,8 @@ Local CLI:
 npm run review <base> [head]
         │
         ▼
-src/workflow/review.ts          fetches `git diff --no-color -U3 <base> [head]`
+src/workflow/review.ts          loads src/app.ts (provider registration)
+        │                       fetches `git diff --no-color -U3 <base> [head]`
         │                       (execFile, no shell; raw text, zero parsing)
         ▼
 src/agents/reviewer.ts          sandbox-less review, single validated tool
@@ -103,7 +155,7 @@ PR opened/synchronized
         │
         ▼
 .github/workflows/pr-review.yml  `npx flue run src/agents/reviewer.ts`
-        │                         with GH_TOKEN + DEEPSEEK_API_KEY env
+        │                         with GH_TOKEN + AGENT_API_KEY env
         ▼
 src/agents/reviewer.ts           GITHUB ACTIONS MODE: `fetch_pr_diff` loads
         │                         the PR diff via `gh pr diff`; the agent
@@ -226,6 +278,10 @@ Done:
 - [x] Schema-enforced brevity: `title` capped at 100 chars, `body` at 300
       chars — the model's tool call is rejected if a finding exceeds the cap,
       so reviews stay short and focused
+- [x] Dynamic model/provider configuration: model and provider are read from
+      env vars (`AGENT_MODEL`, `AGENT_PROVIDER_BASE_URL`, etc.); built-in
+      providers work out of the box, custom providers are registered
+      dynamically via `src/app.ts`
 
 Known limitations:
 
@@ -258,6 +314,7 @@ Known limitations:
 
 ```
 src/
+  app.ts                 custom provider registration (env-based model config)
   agents/reviewer.ts     the review agent (LOCAL MODE + GITHUB ACTIONS MODE,
                          tools: submit_findings / fetch_pr_diff / post_review)
   agents/hello.ts        boilerplate hello agent (provider sanity check)

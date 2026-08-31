@@ -1,5 +1,8 @@
 'use agent';
 
+import '../lib/load-env.ts';
+import { DEFAULT_MODEL } from '../app.ts';
+
 import { execFile } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
@@ -190,7 +193,7 @@ const postReview = defineTool({
 });
 
 export function Reviewer() {
-  useModel('deepseek/deepseek-v4-flash');
+  useModel(process.env.AGENT_MODEL || DEFAULT_MODEL);
 
   // Mode is decided by the environment, never by parsing the (untrusted)
   // user message. Under GitHub Actions the gh-backed tools are registered so

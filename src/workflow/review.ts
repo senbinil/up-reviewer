@@ -23,6 +23,7 @@
 // Note: `git diff` only sees tracked changes — run `git add -N <new-file>` to
 // include brand-new files in a working-tree review.
 import '../lib/load-env.ts'; // MUST stay the first import — see lib/load-env.ts
+import '../app.ts'; // Register custom providers (must come after load-env.ts)
 
 import { init } from '@flue/runtime';
 import { start } from '@flue/runtime/node';

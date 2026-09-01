@@ -63,7 +63,11 @@ function parseArgs(argv: string[]): ParsedArgs {
       format = value;
       i++;
     } else if (argv[i] === '--skills-dir') {
-      skillsDir = argv[i + 1];
+      const value = argv[i + 1];
+      if (value === undefined) {
+        throw new Error('--skills-dir requires a value (e.g. --skills-dir .reviewer/skills)');
+      }
+      skillsDir = value;
       i++;
     } else if (argv[i] === '--max-skills') {
       const raw = argv[i + 1];

@@ -6,7 +6,7 @@ on:
             - "v*"
 
 permissions:
-    id-token: write # Required for OIDC
+    id-token: write # Required for trusted publishing (OIDC)
     contents: read
 
 jobs:
@@ -23,4 +23,4 @@ jobs:
             - run: npm ci
             - run: npm run build --if-present
             - run: npm test
-            - run: npm publish # Or: npm stage publish
+            - run: npm publish

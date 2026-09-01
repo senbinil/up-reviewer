@@ -24,7 +24,7 @@
     "prepack": "npm run build",
     "check:types": "tsc --noEmit",
     "review": "node --env-file-if-exists=.env src/workflow/review.ts",
-    "test": "node --test \"src/**/*.test.ts\""
+    "test": "node --test \"src/**/*.test.ts\" \"src/connections/*.test.ts\""
   },
   "repository": {
     "type": "git",

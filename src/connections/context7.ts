@@ -13,8 +13,8 @@ import { defineMcpConnection } from '@flue/runtime';
  */
 export const context7 = defineMcpConnection({
   name: 'context7',
-  url: 'https://mcp.context7.com/mcp',
-  auth: process.env.CONTEXT7_API_KEY,
+  url: process.env.CONTEXT7_URL ?? 'https://mcp.context7.com/mcp',
+  auth: () => process.env.CONTEXT7_API_KEY || '',
   optional: true,
   tools: ['resolve_library_id', 'query_documentation'],
 });

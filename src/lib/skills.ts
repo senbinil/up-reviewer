@@ -19,6 +19,8 @@ export interface DiscoverOptions {
   dir: string;
   maxSkills: number;
   strict: boolean;
+  /** Base directory for path traversal check. Defaults to cwd. */
+  baseDir?: string;
 }
 
 export interface ValidationResult {
@@ -35,6 +37,10 @@ const SUSPICIOUS_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
     pattern:
       /ignore\s+(all\s+)?(previous|prior|above)\s+(instructions|prompts|rules)/gi,
     reason: 'Possible instruction override attempt',
+  },
+  {
+    pattern: /<\/SKILL>/gi,
+    reason: 'Contains XML closing tag (possible prompt injection)',
   },
   {
     pattern: /disregard\s+(all\s+)?(previous|prior|above)/gi,
@@ -89,13 +95,27 @@ export function validateSkillContent(
   return { valid: warnings.length === 0, warnings };
 }
 
-export function validateSkillsDir(dir: string): string | null {
+export function validateSkillsDir(dir: string, baseDir?: string): string | null {
   const resolved = resolve(dir);
-  // Prevent path traversal in the original input
-  if (dir.includes('..')) {
+  const base = resolve(baseDir ?? '.');
+  // Prevent path traversal: resolved path must stay within base
+  if (!resolved.startsWith(base + '/') && resolved !== base) {
     return null;
   }
   return resolved;
+}
+
+/**
+ * Escape XML special characters to prevent prompt injection via skill content
+ * embedded in XML tags.
+ */
+export function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
 // ─── Discovery ───────────────────────────────────────────────────────────────
@@ -104,11 +124,11 @@ export function discoverSkills(options: DiscoverOptions): {
   skills: Skill[];
   report: SkillReport;
 } {
-  const { dir, maxSkills, strict } = options;
+  const { dir, maxSkills, strict, baseDir } = options;
   const report: SkillReport = { loaded: [], omitted: [] };
   const skills: Skill[] = [];
 
-  const resolvedDir = validateSkillsDir(dir);
+  const resolvedDir = validateSkillsDir(dir, baseDir ?? process.cwd());
   if (!resolvedDir || !existsSync(resolvedDir)) {
     return { skills, report };
   }

@@ -34,7 +34,7 @@ import db from '../db.ts';
 import { diffBetweenRefs } from '../lib/git-diff.ts';
 import { findingsSchema, parseFindings } from '../lib/findings.ts';
 import { toJson, toMarkdown, sanitize } from '../lib/render.ts';
-import { discoverSkills, printSkillReport } from '../lib/skills.ts';
+import { discoverSkills, printSkillReport, escapeXml } from '../lib/skills.ts';
 import type { ReviewFinding } from '../types/review.ts';
 
 type Format = 'markdown' | 'json';
@@ -66,9 +66,13 @@ function parseArgs(argv: string[]): ParsedArgs {
       skillsDir = argv[i + 1];
       i++;
     } else if (argv[i] === '--max-skills') {
-      const val = Number(argv[i + 1]);
+      const raw = argv[i + 1];
+      if (raw === undefined) {
+        throw new Error('--max-skills requires a value (e.g. --max-skills 2)');
+      }
+      const val = Number(raw);
       if (!Number.isInteger(val) || val < 0) {
-        throw new Error(`--max-skills must be a non-negative integer, got "${argv[i + 1]}"`);
+        throw new Error(`--max-skills must be a non-negative integer, got "${raw}"`);
       }
       maxSkills = val;
       i++;
@@ -106,10 +110,10 @@ try {
       const skillBlocks = skills
         .map(
           (s) =>
-            `<SKILL name="${s.name}">
-${s.description}
+            `<SKILL name="${escapeXml(s.name)}">
+${escapeXml(s.description)}
 
-${s.content}
+${escapeXml(s.content)}
 </SKILL>`,
         )
         .join('\n\n');

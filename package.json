@@ -28,7 +28,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/binilsn/up-github-agents.git"
+    "url": "git+https://github.com/senbinil/up-reviewer.git"
   },
   "keywords": [],
   "author": "",
@@ -38,9 +38,9 @@
   },
   "type": "module",
   "bugs": {
-    "url": "https://github.com/binilsn/up-github-agents/issues"
+    "url": "https://github.com/senbinil/up-reviewer/issues"
   },
-  "homepage": "https://github.com/binilsn/up-github-agents#readme",
+  "homepage": "https://github.com/senbinil/up-reviewer#readme",
   "dependencies": {
     "@flue/runtime": "^2.0.3",
     "valibot": "^1.4.2"

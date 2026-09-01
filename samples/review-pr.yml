@@ -47,3 +47,8 @@ jobs:
       AGENT_MODEL_MAX_TOKENS: ${{ secrets.AGENT_MODEL_MAX_TOKENS }}
       AGENT_MODEL_CONTEXT_WINDOW: ${{ secrets.AGENT_MODEL_CONTEXT_WINDOW }}
       AGENT_MODEL_REASONING: ${{ secrets.AGENT_MODEL_REASONING }}
+    # Optional: customize skill loading
+    # with:
+    #   skills-dir: .reviewer/skills
+    #   max-skills: '2'
+    #   strict-skills: 'false'

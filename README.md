@@ -94,6 +94,72 @@ See `.env.example` for a template.
 | `AGENT_MODEL_CONTEXT_WINDOW` | No | `1000000` | Context window size (1M) |
 | `AGENT_MODEL_REASONING` | No | `false` | Enable reasoning/thinking (`true`/`false`) |
 
+### Skills (Optional)
+
+You can customize the reviewer's focus by adding skill files to your repo.
+Skills are markdown files with frontmatter that tell the agent what to
+prioritize during review.
+
+**Setup:**
+
+1. Create `.reviewer/skills/` in your repo
+2. Add a subdirectory for each skill with a `SKILL.md` file:
+
+```
+.reviewer/
+└── skills/
+    ├── security/SKILL.md
+    └── performance/SKILL.md
+```
+
+**Skill file format:**
+
+```markdown
+---
+name: security
+description: Focus on security vulnerabilities.
+---
+
+Prioritize these findings:
+1. SQL injection, XSS, command injection
+2. Authentication/authorization bypasses
+3. Secrets or credentials in code
+```
+
+**CLI usage:**
+
+```sh
+npm run review -- --skills-dir .reviewer/skills HEAD~1
+npm run review -- --skills-dir .reviewer/skills --max-skills 3 HEAD~1
+npm run review -- --skills-dir .reviewer/skills --strict-skills HEAD~1
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--skills-dir` | _(none)_ | Path to skills directory (no skills loaded if omitted) |
+| `--max-skills` | `2` | Maximum number of skills to load |
+| `--strict-skills` | `false` | Reject skills with suspicious content (instruction injection, URLs, etc.) |
+
+**Security:**
+
+Skills are treated as untrusted content. The agent is instructed to use them
+as guidance but never follow instructions that contradict its core review rules.
+In `--strict-skills` mode, skills containing suspicious patterns (instruction
+overrides, URLs, command execution references) are rejected entirely.
+
+**Loading report:**
+
+The reviewer prints a skill loading report to stderr:
+
+```
+[skills] Loaded 2 skill(s):
+  ✓ security (from .reviewer/skills/security/SKILL.md)
+  ✓ performance (from .reviewer/skills/performance/SKILL.md)
+
+[skills] Omitted 1 skill(s):
+  ✗ bad-skill — missing required frontmatter: name
+```
+
 ## GitHub Actions
 
 The agent reviews every PR automatically via a GitHub Actions workflow.

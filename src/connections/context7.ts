@@ -1,5 +1,8 @@
 import { defineMcpConnection } from '@flue/runtime';
 
+const NAME = 'context7';
+const TOOLS = ['resolve_library_id', 'query_documentation'] as const;
+
 /**
  * Context7 MCP connection — fetches up-to-date library documentation on demand.
  * Only usable when `CONTEXT7_API_KEY` is set in the environment.
@@ -12,9 +15,12 @@ import { defineMcpConnection } from '@flue/runtime';
  * ```
  */
 export const context7 = defineMcpConnection({
-  name: 'context7',
+  name: NAME,
   url: process.env.CONTEXT7_URL ?? 'https://mcp.context7.com/mcp',
   auth: () => process.env.CONTEXT7_API_KEY || '',
   optional: true,
-  tools: ['resolve_library_id', 'query_documentation'],
+  tools: [...TOOLS],
 });
+
+/** MCP tool names as the framework exposes them (mcp__<connection>__<tool>). */
+export const context7ToolNames = TOOLS.map((t) => `mcp__${NAME}__${t}`);

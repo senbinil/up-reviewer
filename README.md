@@ -1,54 +1,67 @@
 # up-reviewer
 
+[![CI](https://github.com/senbinil/up-reviewer/actions/workflows/ci.yml/badge.svg)](https://github.com/senbinil/up-reviewer/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/up-reviewer.svg)](https://www.npmjs.com/package/up-reviewer)
+[![npm downloads](https://img.shields.io/npm/dm/up-reviewer.svg)](https://www.npmjs.com/package/up-reviewer)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D24-brightgreen.svg)](https://nodejs.org)
+
 A [Flue](https://flueframework.com) agent that reviews local git diffs and
 GitHub PRs, reporting **line-anchored findings** (file, line, severity, title,
 body).
 
-## Quick start
+## Install
 
 ```sh
-npm install
-# .env must contain a provider key, e.g. DEEPSEEK_API_KEY=...
+npm install up-reviewer
+```
 
-npm run review              # review the working tree vs HEAD
-npm run review -- 8592245   # review the working tree vs a commit
-npm run review -- main feature/x   # review a branch diff
-npm run review -- --format json main feature/x   # API-ready JSON
+Published at [npmjs.com/package/up-reviewer](https://www.npmjs.com/package/up-reviewer).
+
+### Build from source
+
+```sh
+git clone https://github.com/senbinil/up-reviewer.git
+cd up-reviewer
+npm install
+npm run build
 ```
 
 Requires Node >= 24 (native TypeScript type-stripping).
 
-## Model Configuration
+## Quick start
 
-The agent reads its model and provider from environment variables, with sensible
-defaults. Built-in providers work out of the box; custom providers (e.g., Mimo,
-Ollama) are registered dynamically.
+```sh
+# Set your provider's API key
+export DEEPSEEK_API_KEY=sk-xxx
 
-### Environment Variables
+# Review the working tree vs HEAD
+npm run review
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `AGENT_MODEL` | No | `deepseek/deepseek-v4-flash` | Model specifier (`provider/model-id`) |
-| `AGENT_PROVIDER_ID` | No | Extracted from `AGENT_MODEL` | Override provider ID for custom providers |
-| `AGENT_PROVIDER_BASE_URL` | No* | — | Base URL for custom providers (*required for custom providers) |
-| `AGENT_PROVIDER_API` | No | `openai-completions` | Wire protocol: `openai-completions` or `anthropic-messages` |
-| `AGENT_API_KEY` | No | — | API key for custom providers |
-| `AGENT_MODEL_MAX_TOKENS` | No | `8192` | Max output tokens |
-| `AGENT_MODEL_CONTEXT_WINDOW` | No | `1000000` | Context window size (1M) |
-| `AGENT_MODEL_REASONING` | No | `false` | Enable reasoning/thinking (`true`/`false`) |
+# Review vs a specific commit
+npm run review -- 8592245
+
+# Review a branch diff
+npm run review -- main feature/x
+
+# API-ready JSON output
+npm run review -- --format json main feature/x
+```
+
+## Configuration
 
 ### Built-in Providers
 
-No extra configuration needed — just set the provider's API key:
+Built-in providers need **only the API key** — no other env vars required.
+The agent auto-configures the base URL, protocol, and model defaults.
 
 ```bash
-# DeepSeek (default)
+# DeepSeek (default — no AGENT_MODEL needed)
 DEEPSEEK_API_KEY=sk-xxx npm run review
 
-# Anthropic
+# Anthropic (just the key + model override)
 ANTHROPIC_API_KEY=sk-ant-xxx AGENT_MODEL=anthropic/claude-sonnet-4-6 npm run review
 
-# OpenAI
+# OpenAI (just the key + model override)
 OPENAI_API_KEY=sk-xxx AGENT_MODEL=openai/gpt-5.5 npm run review
 ```
 
@@ -68,13 +81,18 @@ AGENT_MODEL=mimo/mimo-model-id \
 
 See `.env.example` for a template.
 
-## Install
+### Environment Variables
 
-```sh
-npm install up-reviewer
-```
-
-Published at [npmjs.com/package/up-reviewer](https://www.npmjs.com/package/up-reviewer).
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `AGENT_MODEL` | No | `deepseek/deepseek-v4-flash` | Model specifier (`provider/model-id`) |
+| `AGENT_PROVIDER_ID` | No | Extracted from `AGENT_MODEL` | Override provider ID for custom providers |
+| `AGENT_PROVIDER_BASE_URL` | No* | — | Base URL for custom providers (*required for custom providers) |
+| `AGENT_PROVIDER_API` | No | `openai-completions` | Wire protocol: `openai-completions` or `anthropic-messages` |
+| `AGENT_API_KEY` | No | — | API key for custom providers |
+| `AGENT_MODEL_MAX_TOKENS` | No | `8192` | Max output tokens |
+| `AGENT_MODEL_CONTEXT_WINDOW` | No | `1000000` | Context window size (1M) |
+| `AGENT_MODEL_REASONING` | No | `false` | Enable reasoning/thinking (`true`/`false`) |
 
 ## GitHub Actions
 
@@ -88,22 +106,6 @@ The agent reviews every PR automatically via a GitHub Actions workflow.
 The workflow uses `pull_request_target` so only base-branch code runs with secrets.
 Fork PRs are skipped. After each run, it verifies a review was actually posted
 and fails loudly otherwise.
-
-## CI
-
-`.github/workflows/ci.yml` runs `npm run check:types` and `npm test` on
-every push to any branch and on pull requests (opened/reopened only —
-every PR update is a push, so `synchronize` would be a duplicate). It
-runs on Node 24 (read from `.nvmrc`), carries no secrets — permissions are read-only contents.
-
-Concurrency is grouped per branch with `cancel-in-progress`: a new push
-cancels the in-flight run from the previous commit on the same branch, so
-CI never backs up behind stale runs. Docs-only pushes (markdown) skip CI
-to save runner minutes.
-
-Fork PRs are un-gated (GitHub denies repository secrets to fork runs +
-the read-only token is the real boundary, not an inline `if:` that a fork
-can delete from its copy).
 
 ## How it works
 
@@ -162,73 +164,21 @@ Design decisions (hard-won):
   an empty diff short-circuits without a model call.
 - **Untrusted diff text is marked as data** in the prompt (injection surface).
 
-## Current progress
+## CI
 
-Done:
+`.github/workflows/ci.yml` runs `npm run check:types` and `npm test` on
+every push to any branch and on pull requests (opened/reopened only —
+every PR update is a push, so `synchronize` would be a duplicate). It
+runs on Node 24 (read from `.nvmrc`), carries no secrets — permissions are read-only contents.
 
-- [x] Local-git-diff review pipeline (`npm run review`) with validated,
-      line-anchored, severity-labeled findings
-- [x] Empty-diff fast path, 100 KB diff cap, shell-safe ref validation
-      (refs go to `git` as argv, never through a shell)
-- [x] Anti-hang guarantees: submission timeout, exec timeouts, no harness
-- [x] `check:types` script (was documented but missing) + `valibot` /
-      `typescript` deps; Node `engines` guard
-- [x] GitHub Actions workflow (`.github/workflows/pr-review.yml`): reviews
-      every same-repo PR on open/synchronize and posts the findings as a PR
-      review (event `COMMENT` with inline comments) via `gh`, using
-      `GITHUB_TOKEN`; triggered as `pull_request_target` with a base-branch
-      checkout so PR-controlled code never runs with secrets (fork PRs are
-      skipped — under `pull_request_target` they would receive repo secrets);
-      mode and tools are gated on the `GITHUB_ACTIONS` env (no gh tools in
-      LOCAL MODE — no injection surface, no model-directed shell, token never
-      exposed to the model); the PR number comes from the workflow env, never
-      from the model
-- [x] `post_review` resilience: `line >= 1` schema constraint; if inline
-      comments are rejected by GitHub (422), the review falls back to a
-      body-only summary so the review still lands
-- [x] Unit tests for `assertGitRef` / `diffBetweenRefs` / `parseFindings` and
-      the render paths, run via `npm test` (`node --test`, colocated in
-      `src/lib/*.test.ts`)
-- [x] CI workflow (`.github/workflows/ci.yml`): runs `check:types` and
-      `npm test` on every push and PR, with per-branch concurrency -
-      cancellation so CI never backs up behind stale runs
-- [x] Template-based response format (`templates/`): summary, finding, and
-      inline-comment output is rendered from plain-text markdown templates;
-      the format can be restyled without touching code
-- [x] Schema-enforced brevity: `title` capped at 100 chars, `body` at 300
-      chars — the model's tool call is rejected if a finding exceeds the cap,
-      so reviews stay short and focused
-- [x] Dynamic model/provider configuration: model and provider are read from
-      env vars (`AGENT_MODEL`, `AGENT_PROVIDER_BASE_URL`, etc.); built-in
-      providers work out of the box, custom providers are registered
-      dynamically via `src/app.ts`
+Concurrency is grouped per branch with `cancel-in-progress`: a new push
+cancels the in-flight run from the previous commit on the same branch, so
+CI never backs up behind stale runs. Docs-only pushes (markdown) skip CI
+to save runner minutes.
 
-Known limitations:
-
-- `git diff` only sees **tracked** changes — untracked files are invisible to
-  a working-tree review. Run `git add -N <file>` to include them.
-- Findings are AI output: useful, but fallible (the agent itself produced a
-  false-positive "high" on a lockfile during testing). Treat output as review
-  *input*, not verdict.
-- Model behavior is nondeterministic; the pipeline is designed so that any
-  reply (tool call, JSON, prose) degrades gracefully instead of hanging.
-- Each `npm run review` uses a fresh conversation instance (no stale history).
-
-## Next steps
-
-- [ ] Replace the 100 KB cap with chunked reviews of large diffs
-- [ ] Rebuild a quality-eval harness: seeded diffs with golden findings
-      compared against the agent's output on every run (the `evals/` corpus
-      exists but is not wired into an automated harness yet)
-- [ ] Support fork PRs (they are skipped today because fork runs do not receive
-      repository secrets)
-- [ ] Publish as an npm package and GitHub Actions reusable workflow
-      (see `feature/npm-package` — `package.json` has `bin`, `files`, `exports`;
-      needs `npm publish` + a `workflow_call` trigger on `pr-review.yml`)
-- [ ] User-supplied review skills: scan `.agents/skills/` (or `--skills-dir`)
-      before dispatch, inject discovered `SKILL.md` files into the system prompt
-      so teams can layer on project-specific review rules without changing the
-      agent code
+Fork PRs are un-gated (GitHub denies repository secrets to fork runs +
+the read-only token is the real boundary, not an inline `if:` that a fork
+can delete from its copy).
 
 ## Learn more
 

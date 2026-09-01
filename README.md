@@ -206,8 +206,6 @@ src/agents/reviewer.ts           GITHUB ACTIONS MODE: `fetch_pr_diff` loads
         │                         the PR diff via `gh pr diff`; the agent
         │                         optionally uses Context7 MCP for docs;
         ▼                         reviews it
-        │                         the PR diff via `gh pr diff`; the agent
-        ▼                         reviews it
 `post_review` tool               validates findings, POSTs a PR review
                                  (event COMMENT + inline comments) via `gh api`
 ```

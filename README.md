@@ -119,6 +119,7 @@ by simply not using the doc tools.
 | `AGENT_MODEL_CONTEXT_WINDOW` | No | `1000000` | Context window size (1M) |
 | `AGENT_MODEL_REASONING` | No | `false` | Enable reasoning/thinking (`true`/`false`) |
 | `CONTEXT7_API_KEY` | No | — | Context7 API key for fetching up-to-date library docs (MCP) |
+| `CONTEXT7_URL` | No | `https://mcp.context7.com/mcp` | Context7 MCP endpoint URL (advanced override) |
 
 ## GitHub Actions
 

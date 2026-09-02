@@ -88,5 +88,12 @@ jobs:
       - name: Run review binary
         run: |
           cd /tmp/install
-          # Should run without crashing (exit 1 from missing API key is fine)
-          node_modules/.bin/review || true
+          # Expected to fail (no API key, no git repo) — but must not crash.
+          # A real crash (syntax error, missing import) prints a stack trace.
+          stderr=$(node_modules/.bin/review 2>&1 1>/dev/null) || true
+          if echo "$stderr" | grep -qiE 'SyntaxError|Error:.*Cannot find|ERR_MODULE_NOT_FOUND|TypeError|ReferenceError'; then
+            echo "Binary crashed with an unexpected error:"
+            echo "$stderr"
+            exit 1
+          fi
+          echo "Smoke test passed (expected failure, no crash)"

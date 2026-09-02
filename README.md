@@ -100,10 +100,40 @@ See `.env.example` for a template.
 
 The agent reviews every PR automatically via a GitHub Actions workflow.
 
-> **Note:** GitHub Actions requires cloning the source repo — the npm package
-> alone is for local CLI usage only.
+### Using the npm package
 
-**Setup:**
+```yaml
+# .github/workflows/review-pr.yml
+name: PR Review
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install up-reviewer
+      - run: npx review
+        env:
+          GITHUB_ACTIONS: 'true'
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AGENT_API_KEY: ${{ secrets.AGENT_API_KEY }}
+```
+
+### Using the source repo
+
 1. Add `AGENT_API_KEY` (or provider key like `XIAOMI_API_KEY`) as a repository secret
 2. Drop [samples/review-pr.yml](samples/review-pr.yml) into `.github/workflows/`
 3. Push to the default branch — it activates on the next PR

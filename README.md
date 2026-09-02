@@ -35,17 +35,19 @@ Requires Node >= 24 (native TypeScript type-stripping).
 export DEEPSEEK_API_KEY=sk-xxx
 
 # Review the working tree vs HEAD
-npm run review
+npx review
 
 # Review vs a specific commit
-npm run review -- 8592245
+npx review 8592245
 
 # Review a branch diff
-npm run review -- main feature/x
+npx review main feature/x
 
 # API-ready JSON output
-npm run review -- --format json main feature/x
+npx review --format json main feature/x
 ```
+
+> **Note:** If you cloned the repo, use `npm run review` instead of `npx review`.
 
 ## Configuration
 
@@ -56,13 +58,13 @@ The agent auto-configures the base URL, protocol, and model defaults.
 
 ```bash
 # DeepSeek (default — no AGENT_MODEL needed)
-DEEPSEEK_API_KEY=sk-xxx npm run review
+DEEPSEEK_API_KEY=sk-xxx npx review
 
 # Anthropic (just the key + model override)
-ANTHROPIC_API_KEY=sk-ant-xxx AGENT_MODEL=anthropic/claude-sonnet-4-6 npm run review
+ANTHROPIC_API_KEY=sk-ant-xxx AGENT_MODEL=anthropic/claude-sonnet-4-6 npx review
 
 # OpenAI (just the key + model override)
-OPENAI_API_KEY=sk-xxx AGENT_MODEL=openai/gpt-5.5 npm run review
+OPENAI_API_KEY=sk-xxx AGENT_MODEL=openai/gpt-5.5 npx review
 ```
 
 ### Custom Providers
@@ -76,7 +78,7 @@ AGENT_MODEL=mimo/mimo-model-id \
   AGENT_MODEL_MAX_TOKENS=16384 \
   AGENT_MODEL_CONTEXT_WINDOW=256000 \
   AGENT_MODEL_REASONING=true \
-  npm run review
+  npx review
 ```
 
 See `.env.example` for a template.
@@ -98,6 +100,9 @@ See `.env.example` for a template.
 
 The agent reviews every PR automatically via a GitHub Actions workflow.
 
+> **Note:** GitHub Actions requires cloning the source repo — the npm package
+> alone is for local CLI usage only.
+
 **Setup:**
 1. Add `AGENT_API_KEY` (or provider key like `XIAOMI_API_KEY`) as a repository secret
 2. Drop [samples/review-pr.yml](samples/review-pr.yml) into `.github/workflows/`
@@ -112,7 +117,7 @@ and fails loudly otherwise.
 Local CLI:
 
 ```
-npm run review <base> [head]
+npx review <base> [head]
         │
         ▼
 src/workflow/review.ts          loads src/app.ts (provider registration)
@@ -130,6 +135,9 @@ GitHub Actions (same agent, different mode):
 
 ```
 PR opened/synchronized
+        │
+        ▼
+samples/review-pr.yml            calls reusable workflow from source repo
         │
         ▼
 .github/workflows/pr-review.yml  `npx flue run src/agents/reviewer.ts`

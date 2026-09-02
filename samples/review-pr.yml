@@ -52,3 +52,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           AGENT_API_KEY: ${{ secrets.AGENT_API_KEY }}
+          AGENT_MODEL: ${{ vars.AGENT_MODEL }}
+          AGENT_PROVIDER_BASE_URL: ${{ secrets.AGENT_PROVIDER_BASE_URL }}
+          AGENT_PROVIDER_API: ${{ secrets.AGENT_PROVIDER_API }}
+          AGENT_MODEL_MAX_TOKENS: ${{ secrets.AGENT_MODEL_MAX_TOKENS }}
+          AGENT_MODEL_CONTEXT_WINDOW: ${{ secrets.AGENT_MODEL_CONTEXT_WINDOW }}
+          AGENT_MODEL_REASONING: ${{ secrets.AGENT_MODEL_REASONING }}

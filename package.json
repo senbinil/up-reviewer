@@ -8,7 +8,7 @@
     "flue.config.ts"
   ],
   "bin": {
-    "review-diff": "dist/workflow/review.js"
+    "review": "dist/workflow/review.js"
   },
   "exports": {
     ".": {

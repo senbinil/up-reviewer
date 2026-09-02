@@ -108,10 +108,10 @@ export async function runLocal(): Promise<void> {
     }
 
     if (findings === undefined) {
-      console.error(
-        'No structured findings were captured. Raw agent reply:\n\n' + sanitize(reply.text),
+      throw new Error(
+        'No structured findings were captured. Raw agent reply:\n\n' +
+          sanitize(reply.text),
       );
-      process.exitCode = 1;
     } else if (format === 'json') {
       console.log(JSON.stringify(toJson(findings), null, 2));
     } else {

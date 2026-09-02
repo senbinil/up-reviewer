@@ -29,6 +29,11 @@ export async function runGithub(): Promise<void> {
         'Set it in your GitHub Actions workflow from github.event.pull_request.number.'
       );
     }
+    if (!/^[1-9]\d*$/.test(prNumber)) {
+      throw new Error(
+        `PR_NUMBER must be a positive integer, got "${prNumber}".`
+      );
+    }
 
     if (!process.env.GH_TOKEN) {
       throw new Error(

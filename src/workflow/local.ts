@@ -18,6 +18,7 @@ import db from '../db.ts';
 import { diffBetweenRefs } from '../lib/git-diff.ts';
 import { findingsSchema, parseFindings } from '../lib/findings.ts';
 import { toJson, toMarkdown, sanitize } from '../lib/render.ts';
+import { trackTools } from './tool-tracker.ts';
 import type { ReviewFinding } from '../types/review.ts';
 
 type Format = 'markdown' | 'json';
@@ -79,22 +80,12 @@ export async function runLocal(): Promise<void> {
       '</DIFF>',
     ].join('\n');
 
-    const toolNames = new Map<string, string>();
-    let submitted: unknown;
+    const tracker = trackTools('submit_findings');
     const receipt = await handle.dispatch(message);
-    const reply = await handle.read(receipt, {
-      onEvent: (chunk) => {
-        if (chunk.type === 'tool-input') {
-          toolNames.set(chunk.toolCallId, chunk.toolName);
-        } else if (chunk.type === 'tool-output') {
-          if (toolNames.get(chunk.toolCallId) === 'submit_findings') {
-            submitted = chunk.output;
-          }
-        }
-      },
-    });
+    const reply = await handle.read(receipt, { onEvent: tracker.onEvent });
 
     let findings: ReviewFinding[] | undefined;
+    const submitted = tracker.outputs.values().next().value;
     if (submitted !== undefined) {
       const parsed = v.safeParse(findingsSchema, submitted);
       if (parsed.success) findings = parsed.output;
@@ -108,10 +99,11 @@ export async function runLocal(): Promise<void> {
     }
 
     if (findings === undefined) {
-      throw new Error(
+      console.error(
         'No structured findings were captured. Raw agent reply:\n\n' +
           sanitize(reply.text),
       );
+      process.exitCode = 1;
     } else if (format === 'json') {
       console.log(JSON.stringify(toJson(findings), null, 2));
     } else {

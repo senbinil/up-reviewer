@@ -28,6 +28,9 @@ import '../app.ts'; // Register custom providers (must come after load-env.ts)
 import { runLocal } from './local.ts';
 import { runGithub } from './github.ts';
 
+// Each mode owns its own Flue lifecycle (start/stop) and error handling.
+// No top-level finally block needed — the delegated functions clean up.
+
 try {
   if (process.env.GITHUB_ACTIONS === 'true') {
     await runGithub();

@@ -126,7 +126,6 @@ jobs:
       - run: npm install up-reviewer
       - run: npx review
         env:
-          GITHUB_ACTIONS: 'true'
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AGENT_API_KEY: ${{ secrets.AGENT_API_KEY }}

@@ -30,6 +30,13 @@ export async function runGithub(): Promise<void> {
       );
     }
 
+    if (!process.env.GH_TOKEN) {
+      throw new Error(
+        'GH_TOKEN environment variable is required. ' +
+        'Set it in your GitHub Actions workflow: ${{ secrets.GITHUB_TOKEN }}.'
+      );
+    }
+
     flue = await start({ agents: [Reviewer], db });
     const handle = init(Reviewer);
 

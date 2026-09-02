@@ -137,7 +137,7 @@ jobs:
 **Setup:**
 
 1. Add `AGENT_API_KEY` (or provider key like `XIAOMI_API_KEY`) as a repository secret
-2. Drop [samples/review-pr.yml](samples/review-pr.yml) into `.github/workflows/`
+2. Copy [.github/workflows/pr-review.yml](.github/workflows/pr-review.yml) into your repo's `.github/workflows/`
 3. Push to the default branch — it activates on the next PR
 
 The workflow uses `pull_request_target` so only base-branch code runs with secrets.
@@ -152,9 +152,9 @@ Local CLI:
 npx review <base> [head]
         │
         ▼
-src/workflow/review.ts          loads src/app.ts (provider registration)
-        │                       fetches `git diff --no-color -U3 <base> [head]`
-        │                       (execFile, no shell; raw text, zero parsing)
+src/workflow/review.ts           auto-detects mode, dispatches to:
+        │                        ├── local.ts  (LOCAL MODE:  git diff)
+        │                        └── github.ts (GITHUB ACTIONS MODE: gh pr diff)
         ▼
 src/agents/reviewer.ts          sandbox-less review, single validated tool
         │                       `submit_findings` ({findings: [...]})
@@ -167,9 +167,6 @@ GitHub Actions (same agent, different mode):
 
 ```
 PR opened/synchronized
-        │
-        ▼
-samples/review-pr.yml            calls reusable workflow from source repo
         │
         ▼
 .github/workflows/pr-review.yml  `npx flue run src/agents/reviewer.ts`

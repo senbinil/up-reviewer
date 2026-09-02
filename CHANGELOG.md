@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.3.1](https://github.com/senbinil/up-reviewer/compare/v0.3.0...v0.3.1) (2026-09-02)
+
+### Features
+
+* Increase default context window from 128K to 1M tokens for modern models
+
+### Refactor
+
+* Extract local and GitHub Actions modes into separate modules (`local.ts`, `github.ts`)
+* Extract tool-call tracking into reusable `tool-tracker.ts`
+* Add `parseArgs` tests for CLI argument parsing
+
+### CI
+
+* Bump publish workflow actions to v7
+* Audit cleanup — align all workflows to v7 actions
+
+### Documentation
+
+* Fix README instructions for npm users
+
 ## [0.3.0](https://github.com/senbinil/up-reviewer/compare/v0.2.0...v0.3.0) (2026-09-02)
 
 ### ⚠ BREAKING CHANGES

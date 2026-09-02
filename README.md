@@ -134,6 +134,8 @@ jobs:
 
 ### Using the source repo
 
+**Setup:**
+
 1. Add `AGENT_API_KEY` (or provider key like `XIAOMI_API_KEY`) as a repository secret
 2. Drop [samples/review-pr.yml](samples/review-pr.yml) into `.github/workflows/`
 3. Push to the default branch — it activates on the next PR

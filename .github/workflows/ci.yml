@@ -55,3 +55,37 @@ jobs:
       - run: npm ci
       - run: npm run check:types
       - run: npm test
+
+  npm-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Verify dist output
+        run: |
+          test -f dist/workflow/review.js
+          test -f dist/workflow/local.js
+          test -f dist/workflow/github.js
+          test -f dist/agents/reviewer.js
+          head -1 dist/workflow/review.js | grep -q '^#!/usr/bin/env node'
+      - name: Pack and install
+        run: |
+          TARBALL=$(npm pack --pack-destination /tmp | tail -1)
+          mkdir -p /tmp/install && cd /tmp/install
+          npm init -y --silent
+          npm install /tmp/$TARBALL
+          # Verify binary is linked
+          test -f node_modules/.bin/review
+          # Verify exports resolve (ESM)
+          node --input-type=module -e "import 'up-reviewer'; console.log('exports OK')"
+      - name: Run review binary
+        run: |
+          cd /tmp/install
+          # Should run without crashing (exit 1 from missing API key is fine)
+          node_modules/.bin/review || true

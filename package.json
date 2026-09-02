@@ -30,7 +30,7 @@
     "type": "git",
     "url": "git+https://github.com/senbinil/up-reviewer.git"
   },
-  "keywords": [],
+  "keywords": ["code-review", "git", "diff", "pull-request", "agent", "flue"],
   "author": "",
   "license": "MIT",
   "engines": {

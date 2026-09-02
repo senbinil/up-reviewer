@@ -122,12 +122,15 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.pull_request.head.repo.full_name == github.repository
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
       - run: npm install up-reviewer
       - run: npx review
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           AGENT_API_KEY: ${{ secrets.AGENT_API_KEY }}
 ```
 
@@ -168,14 +171,17 @@ GitHub Actions (same agent, different mode):
 PR opened/synchronized
         │
         ▼
-.github/workflows/pr-review.yml  `npx flue run src/agents/reviewer.ts`
-        │                         with GH_TOKEN + AGENT_API_KEY env
+npx review (GITHUB_ACTIONS=true)   review.ts detects Actions mode,
+        │                           dispatches to github.ts
         ▼
-src/agents/reviewer.ts           GITHUB ACTIONS MODE: `fetch_pr_diff` loads
-        │                         the PR diff via `gh pr diff`; the agent
-        ▼                         reviews it
-`post_review` tool               validates findings, POSTs a PR review
-                                 (event COMMENT + inline comments) via `gh api`
+github.ts                          validates PR_NUMBER, GH_TOKEN,
+        │                          AGENT_API_KEY; dispatches Reviewer
+        ▼
+src/agents/reviewer.ts             `fetch_pr_diff` loads the PR diff
+        │                          via `gh pr diff`; reviews it
+        ▼
+`post_review` tool                validates findings, POSTs a PR review
+                                  (event COMMENT + inline comments) via `gh api`
 ```
 
 Design decisions (hard-won):

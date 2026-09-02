@@ -1,6 +1,6 @@
 {
   "name": "up-reviewer",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Flue agent that reviews git diffs and reports structured, line-anchored findings",
   "files": [
     "dist/",

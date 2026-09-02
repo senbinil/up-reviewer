@@ -47,7 +47,7 @@ function extractProviderId(modelSpecifier: string): string {
  *   AGENT_PROVIDER_API       - Wire protocol: "openai-completions" (default) or "anthropic-messages"
  *   AGENT_API_KEY            - API key for the custom provider
  *   AGENT_MODEL_MAX_TOKENS   - Max output tokens (default: 8192)
- *   AGENT_MODEL_CONTEXT_WINDOW - Context window size (default: 128000)
+ *   AGENT_MODEL_CONTEXT_WINDOW - Context window size (default: 1000000)
  *   AGENT_MODEL_REASONING    - Enable reasoning/thinking (default: false)
  */
 // Mapping of provider IDs to their environment variable names

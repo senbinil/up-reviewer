@@ -57,6 +57,7 @@ jobs:
       - run: npm test
 
   npm-package:
+    needs: [test]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

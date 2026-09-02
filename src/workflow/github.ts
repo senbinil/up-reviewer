@@ -16,6 +16,7 @@ import { start } from '@flue/runtime/node';
 
 import { Reviewer } from '../agents/reviewer.ts';
 import db from '../db.ts';
+import { trackTools } from './tool-tracker.ts';
 
 export async function runGithub(): Promise<void> {
   let flue: Awaited<ReturnType<typeof start>> | undefined;
@@ -40,6 +41,13 @@ export async function runGithub(): Promise<void> {
       );
     }
 
+    if (!process.env.AGENT_API_KEY) {
+      throw new Error(
+        'AGENT_API_KEY environment variable is required. ' +
+        'Set it in your GitHub Actions workflow from repository secrets.'
+      );
+    }
+
     flue = await start({ agents: [Reviewer], db });
     const handle = init(Reviewer);
 
@@ -50,22 +58,11 @@ export async function runGithub(): Promise<void> {
       'then call `post_review` with your findings.',
     ].join('\n');
 
-    let postedReview = false;
-    const toolNames = new Map<string, string>();
+    const tracker = trackTools('post_review');
     const receipt = await handle.dispatch(message);
-    const reply = await handle.read(receipt, {
-      onEvent: (chunk) => {
-        if (chunk.type === 'tool-input') {
-          toolNames.set(chunk.toolCallId, chunk.toolName);
-        } else if (chunk.type === 'tool-output') {
-          if (toolNames.get(chunk.toolCallId) === 'post_review') {
-            postedReview = true;
-          }
-        }
-      },
-    });
+    const reply = await handle.read(receipt, { onEvent: tracker.onEvent });
 
-    if (!postedReview) {
+    if (!tracker.outputs.size) {
       throw new Error(
         'Agent did not call post_review.' +
           (reply.text ? '\n' + reply.text : '')

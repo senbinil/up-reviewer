@@ -38,9 +38,6 @@ try {
     await runLocal();
   }
 } catch (e) {
-  console.error(
-    `Review failed: ${e instanceof Error ? e.message : String(e)}\n` +
-      'Check the refs, your network, and model provider configuration.',
-  );
+  console.error(e instanceof Error ? e.message : String(e));
   process.exitCode = 1;
 }

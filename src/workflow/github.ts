@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 // GitHub Actions mode: dispatches the Reviewer agent which fetches the PR diff
 // via `gh pr diff` and posts a review via `gh api`.
 //
@@ -68,9 +66,10 @@ export async function runGithub(): Promise<void> {
     });
 
     if (!postedReview) {
-      console.error('Agent did not call post_review.');
-      if (reply.text) console.error(reply.text);
-      process.exitCode = 1;
+      throw new Error(
+        'Agent did not call post_review.' +
+          (reply.text ? '\n' + reply.text : '')
+      );
     }
   } finally {
     await flue?.stop();

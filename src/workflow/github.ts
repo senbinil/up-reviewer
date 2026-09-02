@@ -40,12 +40,24 @@ export async function runGithub(): Promise<void> {
       'then call `post_review` with your findings.',
     ].join('\n');
 
+    let postedReview = false;
+    const toolNames = new Map<string, string>();
     const receipt = await handle.dispatch(message);
-    const reply = await handle.read(receipt);
+    const reply = await handle.read(receipt, {
+      onEvent: (chunk) => {
+        if (chunk.type === 'tool-input') {
+          toolNames.set(chunk.toolCallId, chunk.toolName);
+        } else if (chunk.type === 'tool-output') {
+          if (toolNames.get(chunk.toolCallId) === 'post_review') {
+            postedReview = true;
+          }
+        }
+      },
+    });
 
-    if (reply.text) {
-      console.error('Agent replied with text instead of calling post_review:');
-      console.error(reply.text);
+    if (!postedReview) {
+      console.error('Agent did not call post_review.');
+      if (reply.text) console.error(reply.text);
       process.exitCode = 1;
     }
   } finally {

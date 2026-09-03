@@ -103,6 +103,11 @@ useful for verifying correct usage against the latest specs.
 - **Key set + valid** — agent can call Context7 to fetch library docs
 - **Key set + invalid/unreachable** — agent continues without those tools, no error
 
+> **Note:** The connection throws immediately if `auth()` is called without a
+> key, so misconfiguration is caught at startup rather than silently producing
+> empty credentials. The agent guard (`if (process.env.CONTEXT7_API_KEY)`)
+> prevents this from firing when the key is intentionally omitted.
+
 Context7 free tier has rate limits. If you hit them, the agent degrades gracefully
 by simply not using the doc tools.
 
@@ -157,6 +162,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           AGENT_API_KEY: ${{ secrets.AGENT_API_KEY }}
+          # Optional: enable Context7 doc fetching
+          CONTEXT7_API_KEY: ${{ secrets.CONTEXT7_API_KEY }}
 ```
 
 ### Using the source repo

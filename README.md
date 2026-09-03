@@ -83,6 +83,34 @@ AGENT_MODEL=mimo/mimo-model-id \
 
 See `.env.example` for a template.
 
+### Context7 (Optional)
+
+The agent can optionally fetch up-to-date library documentation via
+[Context7](https://context7.com) MCP. This is disabled by default — enable it
+by providing your Context7 API key.
+
+```bash
+# Enable doc fetching for the agent
+CONTEXT7_API_KEY=ctx7-xxx npm run review
+```
+
+When enabled, the agent can call `resolve_library_id` and `query_documentation`
+tools to look up current API docs for libraries referenced in the diff. This is
+useful for verifying correct usage against the latest specs.
+
+**Behavior:**
+- **No `CONTEXT7_API_KEY`** — agent works as before, no doc-fetching tools
+- **Key set + valid** — agent can call Context7 to fetch library docs
+- **Key set + invalid/unreachable** — agent continues without those tools, no error
+
+> **Note:** The connection throws immediately if `auth()` is called without a
+> key, so misconfiguration is caught at startup rather than silently producing
+> empty credentials. The agent guard (`if (process.env.CONTEXT7_API_KEY)`)
+> prevents this from firing when the key is intentionally omitted.
+
+Context7 free tier has rate limits. If you hit them, the agent degrades gracefully
+by simply not using the doc tools.
+
 ### Environment Variables
 
 | Variable | Required | Default | Description |
@@ -95,6 +123,8 @@ See `.env.example` for a template.
 | `AGENT_MODEL_MAX_TOKENS` | No | `8192` | Max output tokens |
 | `AGENT_MODEL_CONTEXT_WINDOW` | No | `1000000` | Context window size (1M) |
 | `AGENT_MODEL_REASONING` | No | `false` | Enable reasoning/thinking (`true`/`false`) |
+| `CONTEXT7_API_KEY` | No | — | Context7 API key for fetching up-to-date library docs (MCP) |
+| `CONTEXT7_URL` | No | `https://mcp.context7.com/mcp` | Context7 MCP endpoint URL (advanced override) |
 
 ## GitHub Actions
 
@@ -132,6 +162,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           AGENT_API_KEY: ${{ secrets.AGENT_API_KEY }}
+          # Optional: enable Context7 doc fetching
+          CONTEXT7_API_KEY: ${{ secrets.CONTEXT7_API_KEY }}
 ```
 
 ### Using the source repo
@@ -159,6 +191,7 @@ src/workflow/review.ts           auto-detects mode, dispatches to:
         │                        └── github.ts (GITHUB ACTIONS MODE: gh pr diff)
         ▼
 src/agents/reviewer.ts          sandbox-less review, single validated tool
+        │                       (optionally mounts Context7 MCP for doc fetching)
         │                       `submit_findings` ({findings: [...]})
         ▼
 workflow validates the tool     captures the tool call via toolCallId,
@@ -177,11 +210,12 @@ npx review (GITHUB_ACTIONS=true)   review.ts detects Actions mode,
 github.ts                          validates PR_NUMBER, GH_TOKEN,
         │                          AGENT_API_KEY; dispatches Reviewer
         ▼
-src/agents/reviewer.ts             `fetch_pr_diff` loads the PR diff
-        │                          via `gh pr diff`; reviews it
-        ▼
-`post_review` tool                validates findings, POSTs a PR review
-                                  (event COMMENT + inline comments) via `gh api`
+src/agents/reviewer.ts           GITHUB ACTIONS MODE: `fetch_pr_diff` loads
+        │                         the PR diff via `gh pr diff`; the agent
+        │                         optionally uses Context7 MCP for docs;
+        ▼                         reviews it
+`post_review` tool               validates findings, POSTs a PR review
+                                 (event COMMENT + inline comments) via `gh api`
 ```
 
 Design decisions (hard-won):

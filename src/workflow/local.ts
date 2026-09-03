@@ -82,7 +82,15 @@ export async function runLocal(): Promise<void> {
 
     const tracker = trackTools('submit_findings');
     const receipt = await handle.dispatch(message);
-    const reply = await handle.read(receipt, { onEvent: tracker.onEvent });
+    // Diagnostic to stderr so stdout stays clean for agent output / --format piping.
+    const reply = await handle.read(receipt, {
+      onEvent: (chunk) => {
+        if (chunk.type === 'tool-input' && chunk.toolName) {
+          console.error(`[tool] ${chunk.toolName}`);
+        }
+        tracker.onEvent(chunk);
+      },
+    });
 
     let findings: ReviewFinding[] | undefined;
     const submitted = tracker.outputs.values().next().value;

@@ -22,9 +22,7 @@ test('context7 auth returns CONTEXT7_API_KEY when set', () => {
     process.env.CONTEXT7_API_KEY = 'test-key-123';
     const auth = context7.auth;
     assert.equal(typeof auth, 'function');
-    if (typeof auth === 'function') {
-      assert.equal(auth(), 'test-key-123');
-    }
+    assert.equal((auth as () => string)(), 'test-key-123');
   } finally {
     if (original === undefined) {
       delete process.env.CONTEXT7_API_KEY;
@@ -40,11 +38,9 @@ test('context7 auth throws when CONTEXT7_API_KEY is missing', () => {
     delete process.env.CONTEXT7_API_KEY;
     const auth = context7.auth;
     assert.equal(typeof auth, 'function');
-    if (typeof auth === 'function') {
-      assert.throws(() => auth(), {
-        message: /CONTEXT7_API_KEY is not set/,
-      });
-    }
+    assert.throws(() => (auth as () => string)(), {
+      message: /CONTEXT7_API_KEY is not set/,
+    });
   } finally {
     if (original !== undefined) {
       process.env.CONTEXT7_API_KEY = original;

@@ -17,6 +17,7 @@
  *   console.log(collector.summary());
  */
 import type { FlueObservation, PromptUsage } from "@flue/runtime";
+import { observe } from "@flue/runtime";
 
 export interface UsageSummary {
     inputTokens: number;
@@ -52,7 +53,7 @@ export function createUsageCollector(): UsageCollector {
     const totals = { ...EMPTY };
 
     return {
-        observe(event) {
+        observe: (event) => {
             if (
                 event.type !== "turn" ||
                 !("response" in event) ||
@@ -77,4 +78,22 @@ export function createUsageCollector(): UsageCollector {
             Object.assign(totals, EMPTY);
         },
     };
+}
+
+/** Create a usage collector and attach it to Flue's observe() API. */
+export function setupUsageCollector(): {
+  collector: UsageCollector;
+  unobserve: () => void;
+} {
+  const collector = createUsageCollector();
+  let unobserveFn: (() => void) | undefined;
+  try {
+    unobserveFn = observe(collector.observe);
+  } catch (e) {
+    console.warn('[usage] observer attach failed:', e);
+  }
+  return {
+    collector,
+    unobserve: () => unobserveFn?.(),
+  };
 }

@@ -11,13 +11,13 @@
 //   GH_TOKEN — GitHub token for API access
 //   AGENT_API_KEY — model provider API key
 
-import { init, observe } from '@flue/runtime';
+import { init } from '@flue/runtime';
 import { start } from '@flue/runtime/node';
 
 import { Reviewer } from '../agents/reviewer.ts';
 import db from '../db.ts';
 import { trackTools } from './tool-tracker.ts';
-import { createUsageCollector } from '../lib/usage.ts';
+import { setupUsageCollector } from '../lib/usage.ts';
 import { renderUsage } from '../lib/render.ts';
 
 export async function runGithub(): Promise<void> {
@@ -53,12 +53,8 @@ export async function runGithub(): Promise<void> {
 
     flue = await start({ agents: [Reviewer], db });
 
-    const usageCollector = createUsageCollector();
-    try {
-      unobserve = observe(usageCollector.observe);
-    } catch (e) {
-      console.warn('[usage] observer attach failed:', e);
-    }
+    const { collector: usageCollector, unobserve: detachUsage } = setupUsageCollector();
+    unobserve = detachUsage;
 
     const handle = init(Reviewer);
 

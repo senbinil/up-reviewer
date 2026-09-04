@@ -8,7 +8,7 @@
 //   npx review 8592245                 # worktree vs commit
 //   npx review main feature/x          # branch diff
 //   npx review --format json main feature/x
-import { init, observe } from '@flue/runtime';
+import { init } from '@flue/runtime';
 import { start } from '@flue/runtime/node';
 import * as v from 'valibot';
 
@@ -18,7 +18,7 @@ import { diffBetweenRefs } from '../lib/git-diff.ts';
 import { findingsSchema, parseFindings } from '../lib/findings.ts';
 import { toJson, toMarkdown, sanitize, renderUsage } from '../lib/render.ts';
 import { trackTools } from './tool-tracker.ts';
-import { createUsageCollector } from '../lib/usage.ts';
+import { setupUsageCollector } from '../lib/usage.ts';
 import type { ReviewFinding } from '../types/review.ts';
 
 type Format = 'markdown' | 'json';
@@ -62,12 +62,8 @@ export async function runLocal(): Promise<void> {
 
     flue = await start({ agents: [Reviewer], db });
 
-    const usageCollector = createUsageCollector();
-    try {
-      unobserve = observe(usageCollector.observe);
-    } catch (e) {
-      console.warn('[usage] observer attach failed:', e);
-    }
+    const { collector: usageCollector, unobserve: detachUsage } = setupUsageCollector();
+    unobserve = detachUsage;
 
     const handle = init(Reviewer);
     const message = [

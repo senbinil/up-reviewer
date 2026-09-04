@@ -82,8 +82,23 @@ export async function runGithub(): Promise<void> {
 
     const u = usageCollector.summary();
     if (u.turns > 0) {
+      const usageLine = renderUsage(u);
       console.error(`[usage] Turns: ${u.turns}`);
-      console.error(`[usage] ${renderUsage(u)}`);
+      console.error(`[usage] ${usageLine}`);
+
+      // Post usage as a PR comment after the review
+      const { execFile: execFileCb } = await import('node:child_process');
+      const { promisify } = await import('node:util');
+      const execFileAsync = promisify(execFileCb);
+      try {
+        await execFileAsync(
+          'gh',
+          ['api', `repos/{owner}/{repo}/issues/${prNumber}/comments`, '--method', 'POST', '-f', `body=${usageLine}`],
+          { timeout: 30_000 },
+        );
+      } catch (e) {
+        console.warn('[usage] failed to post usage comment:', e);
+      }
     }
   } finally {
     unobserve?.();

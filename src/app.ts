@@ -68,6 +68,7 @@ const PROVIDER_ENV_VARS: Record<string, string> = {
   xiaomi: 'XIAOMI_API_KEY',
 };
 
+
 async function registerCustomProvider(): Promise<void> {
   const modelSpecifier = process.env.AGENT_MODEL;
   if (!modelSpecifier) {
@@ -112,6 +113,7 @@ async function registerCustomProvider(): Promise<void> {
   const maxTokens = Number(process.env.AGENT_MODEL_MAX_TOKENS) || 8192;
   const contextWindow = Number(process.env.AGENT_MODEL_CONTEXT_WINDOW) || 1000000;
   const reasoning = process.env.AGENT_MODEL_REASONING === 'true';
+
 
   if (!baseUrl) {
     throw new Error(

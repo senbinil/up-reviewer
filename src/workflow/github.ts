@@ -11,15 +11,18 @@
 //   GH_TOKEN — GitHub token for API access
 //   AGENT_API_KEY — model provider API key
 
-import { init } from '@flue/runtime';
+import { init, observe } from '@flue/runtime';
 import { start } from '@flue/runtime/node';
 
 import { Reviewer } from '../agents/reviewer.ts';
 import db from '../db.ts';
 import { trackTools } from './tool-tracker.ts';
+import { createUsageCollector } from '../lib/usage.ts';
+import { renderUsage } from '../lib/render.ts';
 
 export async function runGithub(): Promise<void> {
   let flue: Awaited<ReturnType<typeof start>> | undefined;
+  let unobserve: (() => void) | undefined;
   try {
     const prNumber = process.env.PR_NUMBER;
     if (!prNumber) {
@@ -49,6 +52,14 @@ export async function runGithub(): Promise<void> {
     }
 
     flue = await start({ agents: [Reviewer], db });
+
+    const usageCollector = createUsageCollector();
+    try {
+      unobserve = observe(usageCollector.observe);
+    } catch (e) {
+      console.warn('[usage] observer attach failed:', e);
+    }
+
     const handle = init(Reviewer);
 
     const message = [
@@ -68,7 +79,14 @@ export async function runGithub(): Promise<void> {
           (reply.text ? '\n' + reply.text : '')
       );
     }
+
+    const u = usageCollector.summary();
+    if (u.turns > 0) {
+      console.error(`[usage] Turns: ${u.turns}`);
+      console.error(`[usage] ${renderUsage(u)}`);
+    }
   } finally {
+    unobserve?.();
     await flue?.stop();
   }
 }

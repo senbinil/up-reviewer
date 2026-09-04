@@ -83,6 +83,25 @@ AGENT_MODEL=mimo/mimo-model-id \
 
 See `.env.example` for a template.
 
+### Token Usage Tracking
+
+After each review, token usage is printed to stderr:
+
+```
+[usage] Turns: 1
+[usage] 📊 Tokens: 1,230 in / 368 out (1,598 total)
+```
+
+For **built-in providers** (DeepSeek, Anthropic, OpenAI, etc.), estimated cost is
+also shown:
+
+```
+[usage] Turns: 1
+[usage] 📊 Tokens: 4,711 in / 3,305 out (8,016 total) · Est. cost: $0.0133
+```
+
+Custom providers show token counts only (no cost).
+
 ### Context7 (Optional)
 
 The agent can optionally fetch up-to-date library documentation via

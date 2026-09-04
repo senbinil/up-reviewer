@@ -8,8 +8,7 @@
 //   npx review 8592245                 # worktree vs commit
 //   npx review main feature/x          # branch diff
 //   npx review --format json main feature/x
-
-import { init } from '@flue/runtime';
+import { init, observe } from '@flue/runtime';
 import { start } from '@flue/runtime/node';
 import * as v from 'valibot';
 
@@ -17,8 +16,9 @@ import { Reviewer } from '../agents/reviewer.ts';
 import db from '../db.ts';
 import { diffBetweenRefs } from '../lib/git-diff.ts';
 import { findingsSchema, parseFindings } from '../lib/findings.ts';
-import { toJson, toMarkdown, sanitize } from '../lib/render.ts';
+import { toJson, toMarkdown, sanitize, renderUsage } from '../lib/render.ts';
 import { trackTools } from './tool-tracker.ts';
+import { createUsageCollector } from '../lib/usage.ts';
 import type { ReviewFinding } from '../types/review.ts';
 
 type Format = 'markdown' | 'json';
@@ -44,6 +44,7 @@ export function parseArgs(argv: string[]): { base: string; head?: string; format
 
 export async function runLocal(): Promise<void> {
   let flue: Awaited<ReturnType<typeof start>> | undefined;
+  let unobserve: (() => void) | undefined;
   try {
     const { base, head, format } = parseArgs(process.argv.slice(2));
     if (!process.argv.slice(2).some((a) => !a.startsWith('--'))) {
@@ -60,6 +61,14 @@ export async function runLocal(): Promise<void> {
     }
 
     flue = await start({ agents: [Reviewer], db });
+
+    const usageCollector = createUsageCollector();
+    try {
+      unobserve = observe(usageCollector.observe);
+    } catch (e) {
+      console.warn('[usage] observer attach failed:', e);
+    }
+
     const handle = init(Reviewer);
     const message = [
       `Review the diff between ${base}${head ? ` and ${head}` : ' and the working tree'}.`,
@@ -117,7 +126,14 @@ export async function runLocal(): Promise<void> {
     } else {
       console.log(toMarkdown(findings));
     }
+
+    const u = usageCollector.summary();
+    if (u.turns > 0) {
+      console.error(`[usage] Turns: ${u.turns}`);
+      console.error(`[usage] ${renderUsage(u)}`);
+    }
   } finally {
+    unobserve?.();
     await flue?.stop();
   }
 }

@@ -11,6 +11,9 @@
 //   GH_TOKEN — GitHub token for API access
 //   AGENT_API_KEY — model provider API key
 
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
 import { init } from '@flue/runtime';
 import { start } from '@flue/runtime/node';
 
@@ -19,6 +22,8 @@ import db from '../db.ts';
 import { trackTools } from './tool-tracker.ts';
 import { setupUsageCollector } from '../lib/usage.ts';
 import { renderUsage } from '../lib/render.ts';
+
+const execFileAsync = promisify(execFile);
 
 export async function runGithub(): Promise<void> {
   let flue: Awaited<ReturnType<typeof start>> | undefined;
@@ -83,9 +88,6 @@ export async function runGithub(): Promise<void> {
       console.error(`[usage] ${usageLine}`);
 
       // Post usage as a PR comment after the review
-      const { execFile: execFileCb } = await import('node:child_process');
-      const { promisify } = await import('node:util');
-      const execFileAsync = promisify(execFileCb);
       try {
         await execFileAsync(
           'gh',

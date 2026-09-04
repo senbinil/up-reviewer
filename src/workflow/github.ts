@@ -11,15 +11,23 @@
 //   GH_TOKEN — GitHub token for API access
 //   AGENT_API_KEY — model provider API key
 
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
 import { init } from '@flue/runtime';
 import { start } from '@flue/runtime/node';
 
 import { Reviewer } from '../agents/reviewer.ts';
 import db from '../db.ts';
 import { trackTools } from './tool-tracker.ts';
+import { setupUsageCollector } from '../lib/usage.ts';
+import { renderUsage } from '../lib/render.ts';
+
+const execFileAsync = promisify(execFile);
 
 export async function runGithub(): Promise<void> {
   let flue: Awaited<ReturnType<typeof start>> | undefined;
+  let unobserve: (() => void) | undefined;
   try {
     const prNumber = process.env.PR_NUMBER;
     if (!prNumber) {
@@ -49,6 +57,10 @@ export async function runGithub(): Promise<void> {
     }
 
     flue = await start({ agents: [Reviewer], db });
+
+    const { collector: usageCollector, unobserve: detachUsage } = setupUsageCollector();
+    unobserve = detachUsage;
+
     const handle = init(Reviewer);
 
     const message = [
@@ -68,7 +80,26 @@ export async function runGithub(): Promise<void> {
           (reply.text ? '\n' + reply.text : '')
       );
     }
+
+    const u = usageCollector.summary();
+    if (u.turns > 0) {
+      const usageLine = renderUsage(u);
+      console.error(`[usage] Turns: ${u.turns}`);
+      console.error(`[usage] ${usageLine}`);
+
+      // Post usage as a PR comment after the review
+      try {
+        await execFileAsync(
+          'gh',
+          ['api', `repos/{owner}/{repo}/issues/${prNumber}/comments`, '--method', 'POST', '-f', `body=${usageLine}`],
+          { timeout: 30_000 },
+        );
+      } catch (e) {
+        console.warn('[usage] failed to post usage comment:', e);
+      }
+    }
   } finally {
+    unobserve?.();
     await flue?.stop();
   }
 }

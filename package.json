@@ -34,7 +34,7 @@
   "author": "",
   "license": "MIT",
   "engines": {
-    "node": ">=24.0.0"
+    "node": "^24.22.2 || >=26.12.1"
   },
   "type": "module",
   "bugs": {
@@ -42,11 +42,11 @@
   },
   "homepage": "https://github.com/senbinil/up-reviewer#readme",
   "dependencies": {
-    "@flue/runtime": "^2.0.3",
+    "@flue/runtime": "^2.3.0",
     "valibot": "^1.4.2"
   },
   "devDependencies": {
-    "@flue/cli": "^2.0.3",
+    "@flue/cli": "^2.3.0",
     "typescript": "^5.9.0"
   }
 }

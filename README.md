@@ -3,7 +3,7 @@
 [![CI](https://github.com/senbinil/up-reviewer/actions/workflows/ci.yml/badge.svg)](https://github.com/senbinil/up-reviewer/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/up-reviewer.svg)](https://www.npmjs.com/package/up-reviewer)
 [![npm downloads](https://img.shields.io/npm/dm/up-reviewer.svg)](https://www.npmjs.com/package/up-reviewer)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D24-brightgreen.svg)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D24.22.2-brightgreen.svg)](https://nodejs.org)
 
 A [Flue](https://flueframework.com) agent that reviews local git diffs and
 GitHub PRs, reporting **line-anchored findings** (file, line, severity, title,
@@ -26,7 +26,9 @@ npm install
 npm run build
 ```
 
-Requires Node >= 24 (native TypeScript type-stripping).
+Requires Node >= 24.22.2 (native TypeScript type-stripping); 25.x and
+26.0–26.12.0 are excluded because of CVE-2026-111497 in the bundled Brotli
+decoder.
 
 ## Quick start
 

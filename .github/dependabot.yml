@@ -1,0 +1,56 @@
+# Dependabot version updates.
+#
+# Security updates are a separate repository setting (already enabled):
+# vulnerability alerts + automated security fixes. Those fire on their own
+# schedule and ignore everything below.
+#
+# Alerts are visible at:
+#   https://github.com/senbinil/up-reviewer/security/dependabot
+
+version: 2
+updates:
+  # Runtime and dev dependencies share one npm tree, so a single entry covers
+  # both; the groups below split them into separate PRs.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    groups:
+      # One PR for minor+patch of everything the published package installs,
+      # so consumers get a single reviewable bump.
+      production-dependencies:
+        dependency-type: production
+        update-types: ["minor", "patch"]
+      # Tooling churn (flue CLI, typescript) is safe together.
+      development-dependencies:
+        dependency-type: development
+        update-types: ["minor", "patch"]
+    ignore:
+      # Majors here are never mechanical: flue majors change the agent API,
+      # typescript majors move the type-stripping floor, and the engines pin
+      # is tied to a Node security baseline. Those get done by hand.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Keeps checkout/setup-node/cache pins in ci.yml, pr-review.yml and
+  # publish.yml current.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      actions:
+        patterns: ["*"]

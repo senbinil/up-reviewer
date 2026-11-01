@@ -18,7 +18,8 @@ jobs:
 
             - uses: actions/setup-node@v7
               with:
-                  node-version: "24"
+                  # Single source of truth for the Node version (.nvmrc).
+                  node-version-file: .nvmrc
                   registry-url: "https://registry.npmjs.org"
                   package-manager-cache: false # never use caching in release builds
             - run: npm ci

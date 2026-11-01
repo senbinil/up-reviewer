@@ -32,7 +32,12 @@ jobs:
     # repository secrets, and only same-repo branch PRs are supported today.
     # (Head-repo code never runs regardless — see the pull_request_target note
     # above.)
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Dependabot PRs are skipped too: Dependabot branches live in this repo, so
+    # the head-repo check above would let them through, and a paid review of a
+    # lockfile bump is noise.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
     steps:
       # Base-branch code only: GITHUB_SHA is the base commit under
       # pull_request_target; pinning the ref makes that explicit. The PR's
